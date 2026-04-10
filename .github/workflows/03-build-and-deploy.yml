@@ -35,8 +35,11 @@ jobs:
           pip install -r requirements.txt
           python -m medilens.compute.build_search_index
 
-      - name: Copy search index to frontend public
-        run: cp data/search-index.orama.bin frontend/public/ 2>/dev/null || echo "No index yet"
+      - name: Compile Orama binary search index
+        run: |
+          cd frontend
+          node scripts/build_orama.js
+          cp ../data/search-index.orama.bin public/ 2>/dev/null || echo "No index compiled"
 
       - name: Build React app
         env:

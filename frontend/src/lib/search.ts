@@ -27,9 +27,10 @@ export async function loadSearchIndex(): Promise<void> {
     const res = await fetch('/search-index.orama.bin', { cache: 'force-cache' });
     if (res.ok) {
       // When the binary index is available, restore it
-      // const data = await res.arrayBuffer();
-      // searchDB   = await restore('binary', new Uint8Array(data));
-      // return;
+      const data = await res.arrayBuffer();
+      const { restore } = await import('@orama/plugin-data-persistence');
+      searchDB = await restore('binary', new Uint8Array(data));
+      return;
     }
   } catch {
     // Fall through to empty index

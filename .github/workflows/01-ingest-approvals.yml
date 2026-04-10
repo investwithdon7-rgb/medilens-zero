@@ -1,0 +1,53 @@
+name: 01 · Ingest Approvals (FDA + EMA + WHO PQ)
+
+on:
+  schedule:
+    - cron: '0 1 * * *'   # Daily 01:00 UTC
+  workflow_dispatch:        # Manual trigger
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run FDA ingestor
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.fda
+
+      - name: Run EMA ingestor
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.ema
+
+      - name: Run WHO Prequalification ingestor
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.who_preq
+
+      - name: Run Global Reference Pricing ingestor
+        env:
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+        run: python -m medilens.ingest.pricing
+
+      - name: Trigger AI enrichment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner:   context.repo.owner,
+              repo:    context.repo.repo,
+              workflow_id: '02-ai-enrich.yml',
+              ref:     'master',
+            });

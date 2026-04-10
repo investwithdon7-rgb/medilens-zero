@@ -1,0 +1,298 @@
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Clock, Globe, TrendingDown, FileText, Send, X, Copy, Check, DollarSign } from 'lucide-react';
+import { getDrug, getDrugApprovals, getDrugPrices } from '../lib/firebase';
+import { callAiProxy, AiTask } from '../lib/ai-proxy';
+
+type Approval = {
+  country: string;
+  authority: string;
+  approval_date: string;
+  lag_days: number | null;
+};
+
+export default function DrugProfile() {
+  const { inn }           = useParams<{ inn: string }>();
+  const [drug, setDrug]   = useState<any>(null);
+  const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [prices, setPrices]       = useState<any[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [aiModal, setAiModal]     = useState<{ title: string; content: string; task: string } | null>(null);
+  const [isGenerating, setIsGenerating] = useState<string | null>(null);
+  const [copied, setCopied]       = useState(false);
+
+  useEffect(() => {
+    if (!inn) return;
+    setLoading(true);
+    Promise.all([getDrug(inn), getDrugApprovals(inn), getDrugPrices(inn)]).then(([d, a, p]) => {
+      setDrug(d);
+      setApprovals((a as Approval[]).sort((x, y) =>
+        (x.lag_days ?? Infinity) - (y.lag_days ?? Infinity)
+      ));
+      setPrices(p);
+      setLoading(false);
+    });
+  }, [inn]);
+
+  const handleAdvocacy = async (task: AiTask, title: string) => {
+    if (!drug) return;
+    setIsGenerating(task);
+    try {
+      const content = await callAiProxy({
+        task,
+        payload: {
+          drug_name: drug.inn,
+          drug_class: drug.drug_class,
+          brand_names: drug.brand_names,
+          approvals: approvals,
+        }
+      });
+      setAiModal({ title, content, task });
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsGenerating(null);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (loading) return <LoadingSkeleton />;
+  if (!drug)   return <NotFound inn={inn} />;
+
+  const firstApproval = approvals[0];
+  const notRegistered = approvals.filter(a => !a.approval_date).length;
+
+  return (
+    <>
+      {/* Drug header */}
+      <div className="drug-header">
+        <div className="container">
+          <Link to="/" className="btn btn-ghost btn-sm mb-4" style={{ marginBottom: '1rem', display: 'inline-flex' }}>
+            <ArrowLeft size={14} /> Back
+          </Link>
+          <div className="drug-inn">{drug.atc_code}</div>
+          <h1 className="drug-name">{drug.inn}</h1>
+          <p className="drug-brands">
+            {Array.isArray(drug.brand_names) ? drug.brand_names.join(' · ') : drug.brand_names}
+          </p>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span className="badge badge-teal">{drug.drug_class}</span>
+            {drug.is_essential && <span className="badge badge-green">WHO Essential Medicine</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="container section">
+        {/* Advocacy Actions */}
+        <div className="mb-8">
+          <h3 className="mb-4 text-teal">Advocacy Toolkit</h3>
+          <div className="advocacy-grid">
+            <div className="advocacy-card">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="pillar-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--blue-400)', margin: 0 }}>
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h4 className="font-bold">Insurance Appeal</h4>
+                  <p className="text-xs text-muted">For denial of coverage</p>
+                </div>
+              </div>
+              <p className="text-sm text-secondary mb-4">
+                Generate a medically-backed appeal letter for your insurance provider or health ministry.
+              </p>
+              <button 
+                className="btn btn-primary btn-sm w-full"
+                disabled={!!isGenerating}
+                onClick={() => handleAdvocacy('appeal_letter', 'Insurance Appeal Letter')}
+              >
+                {isGenerating === 'appeal_letter' ? 'Generating...' : 'Generate Letter'}
+              </button>
+            </div>
+
+            <div className="advocacy-card">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="pillar-icon" style={{ background: 'rgba(192, 132, 252, 0.1)', color: 'var(--purple-400)', margin: 0 }}>
+                  <Send size={20} />
+                </div>
+                <div>
+                  <h4 className="font-bold">Regulatory Petition</h4>
+                  <p className="text-xs text-muted">For registration lag</p>
+                </div>
+              </div>
+              <p className="text-sm text-secondary mb-4">
+                Draft a formal request to your national regulator (e.g. NMRA, NPRA) to fast-track this drug.
+              </p>
+              <button 
+                className="btn btn-ghost btn-sm w-full"
+                disabled={!!isGenerating}
+                onClick={() => handleAdvocacy('policy_brief', 'Regulatory Petition')}
+              >
+                {isGenerating === 'policy_brief' ? 'Generating...' : 'Generate Petition'}
+              </button>
+            </div>
+          </div>
+        </div>
+        {/* AI summary */}
+        {drug.ai_summary && (
+          <div className="card card-lg mb-4" style={{ marginBottom: '1.5rem' }}>
+            <h3 className="mb-2" style={{ marginBottom: '0.75rem' }}>About this drug</h3>
+            <p className="text-secondary">{drug.ai_summary}</p>
+          </div>
+        )}
+
+        {/* Summary stats */}
+        <div className="grid-4 mb-4" style={{ marginBottom: '1.5rem' }}>
+          <div className="stat-card">
+            <div className="stat-value text-teal">{approvals.filter(a => a.approval_date).length}</div>
+            <div className="stat-label">Countries approved</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value text-amber">{notRegistered}</div>
+            <div className="stat-label">Not yet registered</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">
+              {firstApproval?.approval_date
+                ? new Date(firstApproval.approval_date).getFullYear()
+                : '—'}
+            </div>
+            <div className="stat-label">First global approval</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">
+              {firstApproval?.authority ?? '—'}
+            </div>
+            <div className="stat-label">Lead regulator</div>
+          </div>
+        </div>
+
+        {/* Global Pricing */}
+        {prices.length > 0 && (
+          <div className="card card-lg mb-4" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              <DollarSign size={18} style={{ color: 'var(--amber-400)' }} />
+              <h3>Global Pricing Insights</h3>
+            </div>
+            
+            <div className="grid-2">
+              <div>
+                <p className="text-secondary text-sm mb-4">
+                  Reference prices sourced from WHO GPRM, UNICEF, and MSF. Prices are shown for standard units.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {prices.sort((a,b) => b.price - a.price).map(p => (
+                    <div key={p.country} className="flex justify-between items-center p-2 rounded" style={{ background: 'var(--bg-glass)' }}>
+                      <span className="font-bold">{p.country || p.id}</span>
+                      <div className="text-right">
+                        <div className="text-teal font-mono">{p.currency} {p.price}</div>
+                        <div className="text-xs text-muted">{p.unit}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex flex-col justify-center items-center p-4 border rounded" style={{ borderColor: 'var(--border)', background: 'rgba(251, 191, 36, 0.03)' }}>
+                <TrendingDown size={32} className="text-amber mb-2" />
+                <h4 className="text-center">Financial Toxicity Alert</h4>
+                <p className="text-xs text-secondary text-center mt-2">
+                  Significant price variance detected across reference markets.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Approval timeline */}
+        <div className="card card-lg">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            <Clock size={18} style={{ color: 'var(--teal-400)' }} />
+            <h3>Approval Timeline</h3>
+          </div>
+
+          {approvals.length === 0 ? (
+            <p className="text-muted">No approval data available yet.</p>
+          ) : (
+            <div>
+              {approvals.map(a => (
+                <div key={a.country} className="timeline-row">
+                  <span className="timeline-country">
+                    <span className={a.approval_date ? 'dot-approved' : 'dot-not-filed'} style={{ marginRight: 8 }} />
+                    {a.country}
+                  </span>
+                  <span className="timeline-authority text-muted">{a.authority}</span>
+                  <span className="timeline-date">
+                    {a.approval_date
+                      ? new Date(a.approval_date).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })
+                      : <span className="text-muted">Not registered</span>
+                    }
+                  </span>
+                  <span className="timeline-lag">
+                    {a.lag_days === 0
+                      ? <span className="badge badge-green">First global approval</span>
+                      : a.lag_days != null
+                        ? <span className="badge badge-amber">+{Math.round(a.lag_days / 365 * 10) / 10} yrs lag</span>
+                        : <span className="text-muted text-xs">No data</span>
+                    }
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* AI Modal */}
+      {aiModal && (
+        <div className="ai-modal-overlay" onClick={() => setAiModal(null)}>
+          <div className="ai-modal" onClick={e => e.stopPropagation()}>
+            <div className="ai-modal-header">
+              <h3 className="font-bold">{aiModal.title}</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setAiModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="ai-modal-body">
+              <div className="ai-output-text">
+                {aiModal.content}
+              </div>
+            </div>
+            <div className="ai-modal-footer">
+              <button className="btn btn-ghost" onClick={() => setAiModal(null)}>Close</button>
+              <button className="btn btn-primary" onClick={() => copyToClipboard(aiModal.content)}>
+                {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy to Clipboard</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="container section">
+      <div className="skeleton skeleton-title" />
+      <div className="skeleton skeleton-text" style={{ width: '40%' }} />
+      <div className="grid-4" style={{ marginTop: '2rem' }}>
+        {[...Array(4)].map((_, i) => <div key={i} className="skeleton skeleton-card" />)}
+      </div>
+    </div>
+  );
+}
+
+function NotFound({ inn }: { inn?: string }) {
+  return (
+    <div className="container section text-center">
+      <h2>Drug not found</h2>
+      <p className="text-secondary mt-2">No data found for <strong>{inn}</strong>. The pipeline may not have ingested this drug yet.</p>
+      <Link to="/" className="btn btn-primary mt-4" style={{ marginTop: '1.5rem' }}>Go home</Link>
+    </div>
+  );
+}

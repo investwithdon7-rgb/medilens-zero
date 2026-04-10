@@ -1,0 +1,16 @@
+node_modules/
+dist/
+frontend/dist/
+frontend/node_modules/
+.env
+*.env.local
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.log
+firebase-debug.log
+.firebase/
+data/
+*.json.gz
+service-account.json

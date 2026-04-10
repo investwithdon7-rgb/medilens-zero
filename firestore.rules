@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Public read for all drug intelligence data
+    match /drugs/{inn} {
+      allow read: if true;
+      allow write: if false;
+
+      match /approvals/{country} {
+        allow read: if true;
+        allow write: if false;
+      }
+      match /pricing/{country} {
+        allow read: if true;
+        allow write: if false;
+      }
+      match /ai_cache/{cacheId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    match /country_dashboards/{country} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /new_drugs_feed/{drugId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /shortage_forecasts/{forecastId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /equivalence_cache/{cacheId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Crowdsourced prices — public read of validated; write if authenticated
+    match /crowdsourced_prices/{priceId} {
+      allow read: if resource.data.validated == true;
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasAll(['inn', 'country', 'price_local', 'currency'])
+                    && request.resource.data.price_local > 0;
+    }
+
+    // Everything else: deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -38,7 +38,7 @@ jobs:
 
       - name: Run Global Reference Pricing ingestor
         env:
-          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: python -m medilens.ingest.pricing
 
       - name: Trigger AI enrichment

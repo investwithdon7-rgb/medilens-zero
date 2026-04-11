@@ -8,6 +8,7 @@ import CountryDashboard from './pages/CountryDashboard';
 export default function App() {
   return (
     <BrowserRouter basename="/medilens">
+      {/* v1.0.1-fresh-deploy-check */}
       <Navbar />
       <main style={{ flex: 1 }}>
         <Routes>

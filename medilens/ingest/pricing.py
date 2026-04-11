@@ -3,7 +3,7 @@ import csv
 import logging
 from typing import List, Dict, Optional
 from datetime import datetime
-from ..firebase_client import db
+from medilens.firebase_client import get_db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class PriceEntry:
 
 class PricingIngestor:
     def __init__(self):
-        self.db = db
+        self.db = get_db()
 
     def update_drug_pricing(self, entries: List[PriceEntry]):
         """Uploads price data to Firestore."""

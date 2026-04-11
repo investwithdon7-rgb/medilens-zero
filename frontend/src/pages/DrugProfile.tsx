@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, Globe, TrendingDown, FileText, Send, X, Copy, Check, DollarSign } from 'lucide-react';
+import { ArrowLeft, Clock, TrendingDown, FileText, Send, X, Copy, Check, DollarSign } from 'lucide-react';
 import { getDrug, getDrugApprovals, getDrugPrices } from '../lib/firebase';
-import { callAiProxy, AiTask } from '../lib/ai-proxy';
+import { callAiProxy, type AiTask } from '../lib/ai-proxy';
 
 type Approval = {
   country: string;

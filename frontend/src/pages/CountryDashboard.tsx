@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Globe, Clock, DollarSign, AlertTriangle, FileText, Send, X, Copy, Check } from 'lucide-react';
+import { Globe, Clock, FileText, Send, X, Copy, Check } from 'lucide-react';
 import { getCountryDashboard } from '../lib/firebase';
-import { callAiProxy, AiTask } from '../lib/ai-proxy';
+import { callAiProxy, type AiTask } from '../lib/ai-proxy';
 
 export default function CountryDashboard() {
   const { code }           = useParams<{ code: string }>();

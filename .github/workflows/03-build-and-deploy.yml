@@ -2,9 +2,10 @@ name: 03 · Build + Deploy to Bluehost
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 4 * * *'   # Daily 04:00 UTC (after pipeline completes)
-
+  workflow_run:
+    workflows: ["02 · AI Enrich + Country Dashboards"]
+    types:
+      - completed
 jobs:
   build-deploy:
     runs-on: ubuntu-latest

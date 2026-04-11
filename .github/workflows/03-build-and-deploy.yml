@@ -1,6 +1,8 @@
 name: 03 · Build + Deploy to Bluehost
 
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
   workflow_run:
     workflows: ["02 · AI Enrich + Country Dashboards"]
@@ -61,7 +63,7 @@ jobs:
           username:      ${{ secrets.FTP_USERNAME }}
           password:      ${{ secrets.FTP_PASSWORD }}
           local-dir:     ./frontend/dist/
-          server-dir:    /
+          server-dir:    /public_html/medilens/
           exclude:       |
             **/.git*
             **/.git*/**

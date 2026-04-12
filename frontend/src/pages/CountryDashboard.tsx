@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Globe, Clock, FileText, Send, X, Copy, Check, RefreshCw } from 'lucide-react';
 import { getCountryDashboard } from '../lib/firebase';
 import { callAiProxy, type AiTask } from '../lib/ai-proxy';

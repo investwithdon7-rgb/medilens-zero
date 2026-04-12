@@ -1,6 +1,6 @@
 /** Call the Bluehost PHP AI proxy for user-triggered AI tasks. */
 
-const AI_PROXY_URL = import.meta.env.VITE_AI_PROXY_URL || '/api/ai.php';
+const AI_PROXY_URL = import.meta.env.VITE_AI_PROXY_URL || 'api/ai.php';
 
 export type AiTask =
   | 'policy_brief'

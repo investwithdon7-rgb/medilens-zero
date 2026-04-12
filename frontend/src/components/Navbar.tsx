@@ -80,16 +80,14 @@ export default function Navbar() {
         </div>
 
         {/* Nav links */}
-        <ul className="nav-links">
-          <li><NavLink to="/">Dashboard</NavLink></li>
-          <li><NavLink to="/new-drugs">New Drugs</NavLink></li>
-          <li>
-            <NavLink to="/country/USA">
-              <Globe size={14} style={{ display: 'inline', marginRight: 4 }} />
-              Countries
-            </NavLink>
-          </li>
-        </ul>
+        <div className="nav-links">
+          <Link to="/" className="nav-link">Dashboard</Link>
+          <Link to="/new-drugs" className="nav-link">New Drugs</Link>
+          <Link to="/countries" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Globe size={18} />
+            Countries
+          </Link>
+        </div>
 
         {/* Mobile menu toggle */}
         <button
@@ -108,7 +106,7 @@ export default function Navbar() {
             <li><NavLink to="/" onClick={() => setMobileOpen(false)}>Dashboard</NavLink></li>
             <li><NavLink to="/new-drugs" onClick={() => setMobileOpen(false)}>New Drugs</NavLink></li>
             <li>
-              <NavLink to="/country/USA" onClick={() => setMobileOpen(false)}>
+              <NavLink to="/countries" onClick={() => setMobileOpen(false)}>
                 <Globe size={14} style={{ display: 'inline', marginRight: 4 }} />
                 Countries
               </NavLink>

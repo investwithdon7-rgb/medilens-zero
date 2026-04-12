@@ -51,10 +51,16 @@ def run():
         batch.commit()
 
         # Update drug summary
+        is_recent = False
+        if first_date:
+            days_since = (datetime.utcnow() - first_date).days
+            is_recent = days_since < 730  # Recent if approved in last 2 years
+
         drug_doc.reference.update({
             "first_global_approval": first_date.isoformat()[:10],
             "first_approval_country": first_country,
             "approvals_count": len(dates),
+            "is_recent": is_recent,
         })
 
         total += 1

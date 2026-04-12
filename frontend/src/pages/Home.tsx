@@ -5,12 +5,12 @@ import {
 
 const pillars = [
   { icon: <Clock size={22} />, title: 'Approval Lag Monitor',      desc: 'How many years behind is your country for this drug?',          href: '/drug/semaglutide', color: '#2dd4bf' },
-  { icon: <Globe size={22} />, title: 'Therapeutic Landscape',     desc: 'What does your country use for a condition vs. others?',         href: '/country/USA',      color: '#60a5fa' },
+  { icon: <Globe size={22} />, title: 'Therapeutic Landscape',     desc: 'What does your country use for a condition vs. others?',         href: '/countries',      color: '#60a5fa' },
   { icon: <Zap size={22} />,   title: 'New Drug Radar',            desc: 'What new drugs were approved globally? Which reached you?',      href: '/new-drugs',        color: '#c084fc' },
-  { icon: <DollarSign size={22} />, title: 'Global Pricing',       desc: 'What does this drug cost worldwide? Where does your country rank?', href: '/country/USA',   color: '#fbbf24' },
-  { icon: <BarChart2 size={22} />, title: 'Country Dashboard',     desc: 'A complete pharmaceutical intelligence view for your country.',   href: '/country/USA',      color: '#4ade80' },
-  { icon: <AlertTriangle size={22} />, title: 'Shortage Risk Radar', desc: 'Which essential drugs are at risk of going out of stock?',      href: '/country/USA',      color: '#f87171' },
-  { icon: <FileText size={22} />, title: 'Advocacy Action Engine', desc: 'Generate policy briefs and insurance appeal letters with AI.',   href: '/country/USA',      color: '#fb923c' },
+  { icon: <DollarSign size={22} />, title: 'Global Pricing',       desc: 'What does this drug cost worldwide? Where does your country rank?', href: '/countries',   color: '#fbbf24' },
+  { icon: <BarChart2 size={22} />, title: 'Country Dashboard',     desc: 'A complete pharmaceutical intelligence view for your country.',   href: '/countries',      color: '#4ade80' },
+  { icon: <AlertTriangle size={22} />, title: 'Shortage Risk Radar', desc: 'Which essential drugs are at risk of going out of stock?',      href: '/countries',      color: '#f87171' },
+  { icon: <FileText size={22} />, title: 'Advocacy Action Engine', desc: 'Generate policy briefs and AI response letters to insurers.',    href: '/countries',      color: '#fb923c' },
 ];
 
 const stats = [
@@ -40,8 +40,8 @@ export default function Home() {
           </p>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/country/USA" className="btn btn-primary">
-              Explore Country Dashboard →
+            <Link to="/countries" className="btn btn-primary">
+              Explore Global Dashboards →
             </Link>
             <Link to="/new-drugs" className="btn btn-outline">
               New Drug Radar

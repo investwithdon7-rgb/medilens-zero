@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import DrugProfile from './pages/DrugProfile';
 import NewDrugs from './pages/NewDrugs';
+import Countries from './pages/Countries';
 import CountryDashboard from './pages/CountryDashboard';
 import { useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/"              element={<Home />} />
           <Route path="/drug/:inn"     element={<DrugProfile />} />
           <Route path="/new-drugs"     element={<NewDrugs />} />
+          <Route path="/countries"     element={<Countries />} />
           <Route path="/country/:code" element={<CountryDashboard />} />
         </Routes>
       </main>

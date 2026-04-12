@@ -26,11 +26,10 @@ class PricingIngestor:
         """Uploads price data to Firestore."""
         for entry in entries:
             # We store pricing under drugs/{inn}/prices/{country_id}
-            # Normalize INN for doc ID
-            inn_id = entry.inn.replace(' ', '_').lower()
+            # Normalize INN to match main drug collection (lowercase, original spaces)
+            inn_id = entry.inn.lower().strip()
             
-            # Check if drug exists (optional, but good for data integrity)
-            # Actually, we'll just upsert
+            # Upsert pricing data
             
             price_ref = self.db.collection('drugs').document(inn_id).collection('prices').document(entry.country)
             

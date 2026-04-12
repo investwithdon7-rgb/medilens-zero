@@ -34,11 +34,11 @@ EFAVIRENZ,Efavirenz 600mg,2019-11-15,Hetero,WHO-004"""
         count = 0
         for row in reader:
             # Common WHO CSV Headers: 'INN', 'Product Name', 'Prequalification Date', 'Applicant'
-            inn = row.get('INN', '').strip().upper()
-            if not inn: continue
+            inn_raw = row.get('INN', '').strip().lower()
+            if not inn_raw: continue
             
             # Update drug document
-            drug_ref = db.collection('drugs').document(inn)
+            drug_ref = db.collection('drugs').document(inn_raw)
             
             # Format approval data
             approval = {

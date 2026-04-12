@@ -43,10 +43,10 @@ EFAVIRENZ,Efavirenz 600mg,2019-11-15,Hetero,WHO-004"""
             # Format approval data
             approval = {
                 'id': row.get('WHO Reference Number', 'WHO-UNK'),
-                'date': row.get('Prequalification Date', ''),
+                'approval_date': row.get('Prequalification Date', ''),
                 'applicant': row.get('Applicant', ''),
                 'product_name': row.get('Product Name', ''),
-                'source': 'WHO Prequalification'
+                'authority': 'WHO Prequalification'
             }
             
             # Add to approvals sub-collection
@@ -54,7 +54,7 @@ EFAVIRENZ,Efavirenz 600mg,2019-11-15,Hetero,WHO-004"""
             
             # Ensure the drug exists in main collection
             if not drug_ref.get().exists:
-                drug_ref.set({'inn': inn}, merge=True)
+                drug_ref.set({'inn': inn_raw}, merge=True)
                 
             count += 1
             if count % 50 == 0:

@@ -29,35 +29,54 @@ def run():
             raw = d.get("approval_date")
             if raw:
                 try:
-                    dates.append((datetime.fromisoformat(raw), a.id))
-                except ValueError:
+                    # Robust parsing for ISO dates with 'Z'
+                    clean_date = raw.replace("Z", "+00:00")
+                    dt = datetime.fromisoformat(clean_date[:19] + (clean_date[19:25] if len(clean_date) > 19 else ""))
+                    dates.append((dt, a.id))
+                except (ValueError, TypeError):
                     pass
 
         if not dates:
             continue
 
         dates.sort(key=lambda x: x[0])
-        first_date, first_country = dates[0]
+        first_dt, first_country = dates[0]
 
-        # Write lag for each country
+        # Ensure all FOCUS_COUNTRIES have an entry (even if null) so they show in timeline
+        from medilens.compute.country_dashboards import FOCUS_COUNTRIES
+        
         batch = db.batch()
-        for dt, country in dates:
-            lag_days = (dt - first_date).days
+        for country in FOCUS_COUNTRIES:
             ref = drug_doc.reference.collection("approvals").document(country)
-            batch.update(ref, {
-                "lag_days":      lag_days,
-                "first_global":  first_date.isoformat()[:10],
-            })
+            
+            # Check if we have an existing date for this country
+            existing = next((d for d in dates if d[1] == country), None)
+            
+            if existing:
+                lag_days = (existing[0] - first_dt).days
+                batch.update(ref, {
+                    "lag_days":      lag_days,
+                    "first_global":  first_dt.isoformat()[:10],
+                })
+            else:
+                # Potential gap
+                batch.set(ref, {
+                    "lag_days":      None,
+                    "first_global":  first_dt.isoformat()[:10],
+                    "authority":     "—",
+                    "approval_date": None
+                }, merge=True)
+
         batch.commit()
 
         # Update drug summary
         is_recent = False
-        if first_date:
-            days_since = (datetime.utcnow() - first_date).days
-            is_recent = days_since < 730  # Recent if approved in last 2 years
-
+        if first_dt:
+            days_since = (datetime.utcnow() - first_dt).days
+            is_recent = days_since < 730
+            
         drug_doc.reference.update({
-            "first_global_approval": first_date.isoformat()[:10],
+            "first_global_approval": first_dt.isoformat()[:10],
             "first_approval_country": first_country,
             "approvals_count": len(dates),
             "is_recent": is_recent,

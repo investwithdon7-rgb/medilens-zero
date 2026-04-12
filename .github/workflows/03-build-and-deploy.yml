@@ -1,9 +1,8 @@
 name: 03 · Build + Deploy to Bluehost
 
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
+
   workflow_run:
     workflows: ["02 · AI Enrich + Country Dashboards"]
     types:

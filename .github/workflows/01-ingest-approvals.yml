@@ -1,6 +1,8 @@
 name: 01 · Ingest Approvals (FDA + EMA + WHO PQ)
 
 on:
+  push:
+    branches: [ master ]
   schedule:
     - cron: '0 1 * * *'   # Daily 01:00 UTC
   workflow_dispatch:        # Manual trigger

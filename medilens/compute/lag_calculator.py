@@ -52,16 +52,45 @@ def run():
 
         # Update drug summary
         is_recent = False
+        approval_date_str = first_date.isoformat()[:10] if first_date else None
+        
         if first_date:
             days_since = (datetime.utcnow() - first_date).days
             is_recent = days_since < 730  # Recent if approved in last 2 years
 
-        drug_doc.reference.update({
-            "first_global_approval": first_date.isoformat()[:10],
+        drug_data = {
+            "first_global_approval": approval_date_str,
             "first_approval_country": first_country,
             "approvals_count": len(dates),
             "is_recent": is_recent,
-        })
+        }
+        
+        # If any brand names exist, grab the first one for the feed
+        d_dict = drug_doc.to_dict()
+        brand_name = d_dict.get('brand_names', [None])[0] if d_dict.get('brand_names') else None
+        
+        drug_doc.reference.update(drug_data)
+
+        # Sync to New Drug Radar feed
+        feed_ref = db.collection("new_drugs_feed").document(inn)
+        if is_recent:
+            feed_data = {
+                "inn": inn,
+                "brand_name": brand_name,
+                "approval_date": approval_date_str,
+                "authority": first_country,
+                "indication": d_dict.get('therapeutic_class', 'Novel therapeutic agent'),
+                "ai_summary": d_dict.get('ai_summary', ''),
+                "approval_type": "Novel Drug",
+                "countries_registered": [d[1] for d in dates],
+                "last_updated": datetime.utcnow().isoformat()
+            }
+            feed_ref.set(feed_data, merge=True)
+            logger.info(f"Updated New Drug Radar feed for {inn}")
+        else:
+            # Remove if no longer recent (housekeeping)
+            if feed_ref.get().exists:
+                feed_ref.delete()
 
         total += 1
         if total % 100 == 0:

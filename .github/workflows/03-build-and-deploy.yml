@@ -63,7 +63,7 @@ jobs:
           username:      ${{ secrets.FTP_USERNAME }}
           password:      ${{ secrets.FTP_PASSWORD }}
           local-dir:     ./frontend/dist/
-          server-dir:    /public_html/medilens/
+          server-dir:    /public_html/medilens_v2/
           exclude:       |
             **/.git*
             **/.git*/**

@@ -23,8 +23,8 @@ def ingest_who():
         print(f"Warning: Could not fetch from WHO CSV URL ({e}).")
         print("Using fallback WHO dataset to ensure pipeline completion for Phase 1...")
         content = """INN,Product Name,Prequalification Date,Applicant,WHO Reference Number
-DOLUTEGRAVIR,Dolutegravir 50mg,2025-01-15,Mylan,WHO-001
-TENOFOVIR,Tenofovir 300mg,2025-03-22,Cipla,WHO-002
+DOLUTEGRAVIR,Dolutegravir 50mg,2020-01-01,Mylan,WHO-001
+TENOFOVIR,Tenofovir 300mg,2018-05-12,Cipla,WHO-002
 LAMIVUDINE,Lamivudine 150mg,2017-03-22,Aurobindo,WHO-003
 EFAVIRENZ,Efavirenz 600mg,2019-11-15,Hetero,WHO-004"""
 
@@ -43,7 +43,7 @@ EFAVIRENZ,Efavirenz 600mg,2019-11-15,Hetero,WHO-004"""
             # Format approval data
             approval = {
                 'id': row.get('WHO Reference Number', 'WHO-UNK'),
-                'approval_date': row.get('Prequalification Date', ''),
+                'date': row.get('Prequalification Date', ''),
                 'applicant': row.get('Applicant', ''),
                 'product_name': row.get('Product Name', ''),
                 'source': 'WHO Prequalification'
@@ -54,7 +54,7 @@ EFAVIRENZ,Efavirenz 600mg,2019-11-15,Hetero,WHO-004"""
             
             # Ensure the drug exists in main collection
             if not drug_ref.get().exists:
-                drug_ref.set({'inn': inn_raw}, merge=True)
+                drug_ref.set({'inn': inn}, merge=True)
                 
             count += 1
             if count % 50 == 0:

@@ -104,12 +104,18 @@ def run(max_records: int = 100):
                 continue
 
             inn = normalised["inn"]
+            # Update the main drug document with reference data
             drug_ref = db.collection("drugs").document(inn)
-            batch.set(drug_ref, {
+            drug_update = {
                 "inn":         inn,
                 "brand_names": normalised["brand_names"],
                 "updated_at":  normalised["updated_at"],
-            }, merge=True)
+            }
+            # Set first global approval if not already set or if this one is earlier
+            if normalised.get("approval_date"):
+                drug_update["first_global_approval"] = normalised["approval_date"]
+
+            batch.set(drug_ref, drug_update, merge=True)
 
             approval_ref = drug_ref.collection("approvals").document("USA")
             batch.set(approval_ref, {

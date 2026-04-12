@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-   base: '/medilens_v2/',          // Matches tekdruid.com/medilens_v2
+   base: '/medilens/',          // Matches tekdruid.com/medilens
   build: {
     outDir: 'dist',
     emptyOutDir: true,

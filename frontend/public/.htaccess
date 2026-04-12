@@ -1,6 +1,6 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /medilens_v2/
+  RewriteBase /medilens/
   
   # Ensure index.html is the directory index
   DirectoryIndex index.html
@@ -8,5 +8,5 @@
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /medilens_v2/index.html [L]
+  RewriteRule . /medilens/index.html [L]
 </IfModule>

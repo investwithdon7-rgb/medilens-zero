@@ -8,6 +8,7 @@ Writes: drugs/{inn}.lag_summary, drugs/{inn}/approvals/{country}.lag_days
 import logging
 from datetime import datetime
 from medilens.firebase_client import get_db
+from medilens.compute.country_dashboards import FOCUS_COUNTRIES
 
 logger = logging.getLogger(__name__)
 
@@ -42,24 +43,24 @@ def run():
         dates.sort(key=lambda x: x[0])
         first_dt, first_country = dates[0]
 
-        # Ensure all FOCUS_COUNTRIES have an entry (even if null) so they show in timeline
-        from medilens.compute.country_dashboards import FOCUS_COUNTRIES
+        # Sync all existing documents in sub-collection PLUS focus countries
+        all_ids = set([a.id for a in approvals] + FOCUS_COUNTRIES)
         
         batch = db.batch()
-        for country in FOCUS_COUNTRIES:
-            ref = drug_doc.reference.collection("approvals").document(country)
+        for cid in all_ids:
+            ref = drug_doc.reference.collection("approvals").document(cid)
             
-            # Check if we have an existing date for this country
-            existing = next((d for d in dates if d[1] == country), None)
+            # Check if we have an existing date for this entry
+            existing = next((d for d in dates if d[1] == cid), None)
             
             if existing:
                 lag_days = (existing[0] - first_dt).days
-                batch.update(ref, {
+                batch.set(ref, {
                     "lag_days":      lag_days,
                     "first_global":  first_dt.isoformat()[:10],
-                })
+                }, merge=True)
             else:
-                # Potential gap
+                # Potential gap (for focus countries)
                 batch.set(ref, {
                     "lag_days":      None,
                     "first_global":  first_dt.isoformat()[:10],

@@ -66,23 +66,11 @@ export async function getDrugPrices(inn: string) {
  * This is the most important read-optimisation in the entire platform.
  */
 export async function getCountryDashboard(countryCode: string) {
-  // Check localStorage cache first (avoids Firestore read on repeat visits)
-  const cacheKey = `ml_country_${countryCode}`;
-  const cached   = localStorage.getItem(cacheKey);
-  if (cached) {
-    const { data, ts } = JSON.parse(cached);
-    // Accept cache if less than 24 hours old
-    if (Date.now() - ts < 86_400_000) return data;
-  }
-
   const snap = await getDoc(doc(db, 'country_dashboards', countryCode));
   if (!snap.exists()) return null;
-  const data = { id: snap.id, ...snap.data() };
-
-  // Write to cache
-  localStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
-  return data;
+  return { id: snap.id, ...snap.data() };
 }
+
 
 // ── New drugs feed ────────────────────────────────────────────────────────────
 

@@ -24,7 +24,8 @@ export async function loadSearchIndex(): Promise<void> {
 
   try {
     // Try to load from Bluehost
-    const res = await fetch('search-index.orama.bin', { cache: 'force-cache' });
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    const res = await fetch(`${baseUrl}search-index.orama.bin`, { cache: 'force-cache' });
     if (res.ok) {
       // When the binary index is available, restore it
       const data = await res.arrayBuffer();

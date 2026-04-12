@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Globe, Clock, FileText, Send, X, Copy, Check } from 'lucide-react';
+import { Globe, Clock, FileText, Send, X, Copy, Check, RefreshCw } from 'lucide-react';
 import { getCountryDashboard } from '../lib/firebase';
 import { callAiProxy, type AiTask } from '../lib/ai-proxy';
 
@@ -230,13 +230,29 @@ function LoadingSkeleton() {
 
 function Seeding({ code }: { code?: string }) {
   return (
-    <div className="container section text-center">
-      <Globe size={56} style={{ color: 'var(--teal-400)', margin: '0 auto 1rem' }} />
-      <h2>No dashboard data yet for {code?.toUpperCase()}</h2>
-      <p className="text-secondary mt-2" style={{ maxWidth: 480, margin: '0.75rem auto 0' }}>
-        The nightly pipeline hasn't run for this country yet. Run the
-        {' '}<code className="font-mono">02-ai-enrich</code> workflow to generate country dashboards.
+    <div className="container section text-center" style={{ padding: '6rem 2rem' }}>
+      <RefreshCw
+        size={56}
+        style={{
+          color: 'var(--teal-400)',
+          margin: '0 auto 1.5rem',
+          animation: 'spin 4s linear infinite',
+        }}
+      />
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <h2>Intelligence report pending for {code?.toUpperCase()}</h2>
+      <p className="text-secondary mt-2" style={{ maxWidth: 520, margin: '1rem auto 2rem' }}>
+        Our AI engine is currently processing global registration data and therapeutic landscapes 
+        for this country. This usually takes less than 24 hours for new regions.
       </p>
+      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+        <Link to="/" className="btn btn-outline">
+          Back to Global Dashboard
+        </Link>
+        <Link to="/new-drugs" className="btn btn-primary">
+          View Latest Approvals
+        </Link>
+      </div>
     </div>
   );
 }

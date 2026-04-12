@@ -93,14 +93,29 @@ export default function Navbar() {
 
         {/* Mobile menu toggle */}
         <button
-          className="btn btn-ghost btn-sm"
-          style={{ display: 'none' }}
+          className="btn btn-ghost btn-sm mobile-menu-toggle"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Menu"
         >
           {mobileOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
       </div>
+
+      {/* Mobile Menu Drawer */}
+      {mobileOpen && (
+        <div className="mobile-nav">
+          <ul className="mobile-nav-links">
+            <li><NavLink to="/" onClick={() => setMobileOpen(false)}>Dashboard</NavLink></li>
+            <li><NavLink to="/new-drugs" onClick={() => setMobileOpen(false)}>New Drugs</NavLink></li>
+            <li>
+              <NavLink to="/country/USA" onClick={() => setMobileOpen(false)}>
+                <Globe size={14} style={{ display: 'inline', marginRight: 4 }} />
+                Countries
+              </NavLink>
+            </li>
+          </ul>
+        </div>
+      )}
     </nav>
   );
 }

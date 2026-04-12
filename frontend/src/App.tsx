@@ -4,10 +4,21 @@ import Home from './pages/Home';
 import DrugProfile from './pages/DrugProfile';
 import NewDrugs from './pages/NewDrugs';
 import CountryDashboard from './pages/CountryDashboard';
+import { useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 export default function App() {
   return (
     <BrowserRouter basename="/medilens">
+      <ScrollToTop />
       {/* v1.0.1-fresh-deploy-check */}
       <Navbar />
       <main style={{ flex: 1 }}>

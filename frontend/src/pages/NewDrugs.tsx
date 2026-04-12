@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, ExternalLink } from 'lucide-react';
+import { Zap, RefreshCw } from 'lucide-react';
 import { getNewDrugsFeed } from '../lib/firebase';
 
 export default function NewDrugs() {
@@ -96,21 +96,27 @@ function DrugCard({ drug }: { drug: any }) {
 function EmptyState() {
   return (
     <div className="card text-center" style={{ padding: '4rem 2rem' }}>
-      <Zap size={48} style={{ color: 'var(--teal-400)', margin: '0 auto 1rem' }} />
-      <h3 className="mb-2">No new drugs yet</h3>
-      <p className="text-secondary text-sm">
-        Run the <code className="font-mono">01-ingest-approvals</code> GitHub Actions workflow
-        to seed the first batch of drug approval data from openFDA and EMA.
+      <RefreshCw
+        size={48}
+        style={{
+          color: 'var(--teal-400)',
+          margin: '0 auto 1rem',
+          animation: 'spin 3s linear infinite',
+        }}
+      />
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <h3 className="mb-2" style={{ marginTop: '0.5rem' }}>Data refresh incoming</h3>
+      <p className="text-secondary text-sm" style={{ maxWidth: 420, margin: '0.5rem auto 0' }}>
+        Our global intelligence pipeline is collecting the latest drug approvals from openFDA,
+        EMA, and WHO. New entries typically appear within 24 hours.
       </p>
-      <a
-        href="https://github.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn btn-outline mt-4"
-        style={{ marginTop: '1.5rem', display: 'inline-flex' }}
+      <Link
+        to="/drugs"
+        className="btn btn-outline"
+        style={{ marginTop: '1.75rem', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}
       >
-        <ExternalLink size={14} /> Open GitHub Actions
-      </a>
+        <Zap size={14} /> Browse full drug library
+      </Link>
     </div>
   );
 }

@@ -289,10 +289,23 @@ function LoadingSkeleton() {
 
 function NotFound({ inn }: { inn?: string }) {
   return (
-    <div className="container section text-center">
-      <h2>Drug not found</h2>
-      <p className="text-secondary mt-2">No data found for <strong>{inn}</strong>. The pipeline may not have ingested this drug yet.</p>
-      <Link to="/" className="btn btn-primary mt-4" style={{ marginTop: '1.5rem' }}>Go home</Link>
+    <div className="container section text-center" style={{ padding: '6rem 2rem' }}>
+      <div className="pillar-icon" style={{ background: 'rgba(248, 113, 113, 0.1)', color: 'var(--red-400)', margin: '0 auto 1.5rem', width: 64, height: 64 }}>
+        <X size={32} />
+      </div>
+      <h2>Drug not found: {inn}</h2>
+      <p className="text-secondary mt-2" style={{ maxWidth: 480, margin: '1rem auto 2rem' }}>
+        We couldn't find intelligence data for this specific molecule yet. 
+        It might be under a different name, or our pipeline hasn't indexed it yet.
+      </p>
+      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+        <Link to="/" className="btn btn-ghost">
+          Back to Dashboard
+        </Link>
+        <Link to="/new-drugs" className="btn btn-primary">
+          Browse Recent Approvals
+        </Link>
+      </div>
     </div>
   );
 }

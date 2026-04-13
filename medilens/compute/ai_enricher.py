@@ -26,27 +26,49 @@ def enrich_drugs():
     for doc in drugs:
         count += 1
         inn = doc.id
-        print(f"Generating summary for {inn}...")
+        drug_data = doc.to_dict()
+        category  = drug_data.get('drug_class', 'General Therapeutic')
+        
+        print(f"Generating analytics for {inn} ({category})...")
         
         prompt = f"""
-        Act as a clinical pharmacist and global health advocate.
-        Provide a 3-sentence professional summary for the drug: {inn}.
-        Sentence 1: Primary therapeutic use and mechanism.
-        Sentence 2: Significant clinical or public health impact.
-        Sentence 3: Status in global health (e.g., WHO EML status or generic availability).
-        Keep it concise and objective.
+        Act as a clinical pharmacist and global health intelligence analyst.
+        Provide analytical info for the drug: {inn}. 
+        Category: {category}.
+        
+        Return exactly 3 clear, professional sections in JSON format:
+        1. significance: A 2-sentence breakdown of clinical impact and why this drug is a breakthrough or standard.
+        2. access_outlook: 2 sentences on global access barriers (patents, pricing, or supply chain) particularly for LMICs.
+        3. alternatives: List 2-3 common therapeutic alternatives or standard-of-care drugs used in the same category.
+        
+        Format example:
+        {{
+          "significance": "...",
+          "access_outlook": "...",
+          "alternatives": ["...", "..."]
+        }}
         """
         
         try:
             response = model.generate_content(prompt)
-            summary = response.text.strip()
+            # Basic JSON extraction from response
+            import json
+            raw_text = response.text.strip()
+            # Clean up potential markdown formatting
+            if "```json" in raw_text:
+                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw_text:
+                raw_text = raw_text.split("```")[1].split("```")[0].strip()
+            
+            analytics = json.loads(raw_text)
             
             doc.reference.update({
-                'ai_summary': summary
+                'ai_summary': analytics.get('significance', ''),
+                'ai_analytics': analytics
             })
-            print(f"Updated {inn}.")
+            print(f"Updated {inn} with deep analytics.")
         except Exception as e:
-            print(f"Error generating summary for {inn}: {e}")
+            print(f"Error generating analytics for {inn}: {e}")
             
     if count == 0:
         print("No drugs require enrichment at this time.")

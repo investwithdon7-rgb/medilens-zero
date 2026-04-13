@@ -14,11 +14,12 @@ logger = logging.getLogger(__name__)
 
 def run():
     db    = get_db()
-    drugs = db.collection("drugs").stream()
+    drugs = list(db.collection("drugs").stream())
     total = 0
 
     for drug_doc in drugs:
         inn        = drug_doc.id
+        drug       = drug_doc.to_dict()
         approvals  = list(drug_doc.reference.collection("approvals").stream())
         if not approvals:
             continue
@@ -49,8 +50,6 @@ def run():
         batch = db.batch()
         for cid in all_ids:
             ref = drug_doc.reference.collection("approvals").document(cid)
-            
-            # Check if we have an existing date for this entry
             existing = next((d for d in dates if d[1] == cid), None)
             
             if existing:
@@ -60,14 +59,12 @@ def run():
                     "first_global":  first_dt.isoformat()[:10],
                 }, merge=True)
             else:
-                # Potential gap (for focus countries)
                 batch.set(ref, {
                     "lag_days":      None,
                     "first_global":  first_dt.isoformat()[:10],
                     "authority":     "—",
                     "approval_date": None
                 }, merge=True)
-
         batch.commit()
 
         # Update drug summary
@@ -83,8 +80,25 @@ def run():
             "is_recent": is_recent,
         })
 
+        # Sync to New Drug Radar if recent
+        if is_recent:
+            feed_ref = db.collection("new_drugs_feed").document(inn)
+            feed_ref.set({
+                "inn":           inn,
+                "drug_class":    drug.get("drug_class", ""),
+                "is_essential":  drug.get("is_essential", False),
+                "atc_code":      drug.get("atc_code", ""),
+                "ai_summary":    drug.get("ai_summary", ""),
+                "ai_analytics":  drug.get("ai_analytics", None),
+                "countries_registered": [d[1] for d in dates],
+                "first_approval_country": first_country,
+                "approval_date": first_dt.isoformat()[:10],
+                "authority":     next((a.to_dict().get("authority") for a in approvals if a.id == first_country), "Unknown"),
+                "updated_at":    datetime.utcnow().isoformat() + "Z"
+            }, merge=True)
+
         total += 1
-        if total % 100 == 0:
+        if total % 50 == 0:
             logger.info(f"Computed lag for {total} drugs...")
 
     logger.info(f"Lag calculator complete. {total} drugs processed.")

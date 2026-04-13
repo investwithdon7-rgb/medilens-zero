@@ -137,11 +137,44 @@ export default function DrugProfile() {
             </div>
           </div>
         </div>
-        {/* AI summary */}
-        {drug.ai_summary && (
-          <div className="card card-lg mb-4" style={{ marginBottom: '1.5rem' }}>
-            <h3 className="mb-2" style={{ marginBottom: '0.75rem' }}>About this drug</h3>
-            <p className="text-secondary">{drug.ai_summary}</p>
+        {/* Clinical & Market Analysis */}
+        {(drug.ai_summary || drug.ai_analytics) && (
+          <div className="card card-lg mb-8" style={{ borderLeft: '4px solid var(--teal-400)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Zap size={20} className="text-teal" />
+              <h3 className="m-0">Clinical & Market Intelligence</h3>
+            </div>
+            
+            <div className="grid-2 gap-8">
+              <div>
+                <h4 className="text-xs uppercase tracking-widest text-muted mb-2">Therapeutic Significance</h4>
+                <p className="text-secondary leading-relaxed">
+                  {drug.ai_analytics?.significance || drug.ai_summary}
+                </p>
+              </div>
+              
+              {drug.ai_analytics?.access_outlook && (
+                <div>
+                  <h4 className="text-xs uppercase tracking-widest text-muted mb-2">Global Access Outlook</h4>
+                  <p className="text-secondary leading-relaxed">
+                    {drug.ai_analytics.access_outlook}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {drug.ai_analytics?.alternatives && drug.ai_analytics.alternatives.length > 0 && (
+              <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
+                <h4 className="text-xs uppercase tracking-widest text-muted mb-3">Therapeutic Alternatives</h4>
+                <div className="flex flex-wrap gap-2">
+                  {drug.ai_analytics.alternatives.map((alt: string) => (
+                    <span key={alt} className="badge badge-outline text-xs">
+                      {alt}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

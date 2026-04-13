@@ -53,9 +53,16 @@ function DrugCard({ drug }: { drug: any }) {
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
         <div>
-          <span className="badge badge-teal" style={{ marginBottom: '0.5rem', display: 'inline-flex' }}>
-            🆕 {drug.approval_type ?? 'Novel drug'}
-          </span>
+          <div className="flex gap-2 mb-2">
+            <span className="badge badge-teal">
+              🆕 {drug.approval_type ?? 'Novel drug'}
+            </span>
+            {drug.ai_analytics && (
+              <span className="badge badge-outline" style={{ border: '1px solid var(--teal-400)', color: 'var(--teal-400)' }}>
+                ✨ Intelligence Profile
+              </span>
+            )}
+          </div>
           <h3 style={{ fontSize: '1.1rem' }}>
             <Link to={`/drug/${drug.inn}`} style={{ color: 'inherit', textDecoration: 'none' }}>
               {drug.brand_name ?? drug.inn}

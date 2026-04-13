@@ -98,12 +98,12 @@ export default function DrugProfile() {
                   <FileText size={20} />
                 </div>
                 <div>
-                  <h4 className="font-bold">Insurance Appeal</h4>
-                  <p className="text-xs text-muted">For denial of coverage</p>
+                  <h4 className="font-bold">Therapeutic Briefing</h4>
+                  <p className="text-xs text-muted">Clinical value proposition</p>
                 </div>
               </div>
               <p className="text-sm text-secondary mb-4">
-                Generate a medically-backed appeal letter for your insurance provider or health ministry.
+                Generate a comprehensive clinical summary of this drug's therapeutic value and impact.
               </p>
               <button 
                 className="btn btn-primary btn-sm w-full"
@@ -120,19 +120,19 @@ export default function DrugProfile() {
                   <Send size={20} />
                 </div>
                 <div>
-                  <h4 className="font-bold">Regulatory Petition</h4>
-                  <p className="text-xs text-muted">For registration lag</p>
+                  <h4 className="font-bold">Strategic Analysis</h4>
+                  <p className="text-xs text-muted">Access & registration profile</p>
                 </div>
               </div>
               <p className="text-sm text-secondary mb-4">
-                Draft a formal request to your national regulator (e.g. NMRA, NPRA) to fast-track this drug.
+                Get an intelligence report on registration lags, patent status, and global access barriers.
               </p>
               <button 
                 className="btn btn-ghost btn-sm w-full"
                 disabled={!!isGenerating}
-                onClick={() => handleAdvocacy('policy_brief', 'Regulatory Petition')}
+                onClick={() => handleAdvocacy('policy_brief', 'Strategic Analysis')}
               >
-                {isGenerating === 'policy_brief' ? 'Generating...' : 'Generate Petition'}
+                {isGenerating === 'policy_brief' ? 'Generating...' : 'Analyze Market Access'}
               </button>
             </div>
           </div>

@@ -105,7 +105,7 @@ def run():
         import random
         pricing_percentile = random.randint(10, 90)
         shortage_risk = random.randint(2, 12)
-        new_drugs_not_registered = len([g for g in data["top_gaps"] if g.get("condition") != "—"])
+        new_drugs_not_registered = len(data["top_gaps"])
 
         ref = db.collection("country_dashboards").document(country)
         batch.set(ref, {

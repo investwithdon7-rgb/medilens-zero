@@ -36,13 +36,15 @@ def enrich_drugs():
         Provide analytical info for the drug: {inn}. 
         Category: {category}.
         
-        Return exactly 3 clear, professional sections in JSON format:
-        1. significance: A 2-sentence breakdown of clinical impact and why this drug is a breakthrough or standard.
-        2. access_outlook: 2 sentences on global access barriers (patents, pricing, or supply chain) particularly for LMICs.
-        3. alternatives: List 2-3 common therapeutic alternatives or standard-of-care drugs used in the same category.
+        Return exactly 4 clear, professional sections in JSON format:
+        1. drug_class: A 1-2 word primary therapeutic category (e.g., 'Oncology', 'Cardiovascular', 'Antiviral').
+        2. significance: A 2-sentence breakdown of clinical impact and why this drug is a breakthrough or standard.
+        3. access_outlook: 2 sentences on global access barriers (patents, pricing, or supply chain) particularly for LMICs.
+        4. alternatives: List 2-3 common therapeutic alternatives or standard-of-care drugs used in the same category.
         
         Format example:
         {{
+          "drug_class": "...",
           "significance": "...",
           "access_outlook": "...",
           "alternatives": ["...", "..."]
@@ -63,6 +65,7 @@ def enrich_drugs():
             analytics = json.loads(raw_text)
             
             doc.reference.update({
+                'drug_class': analytics.get('drug_class', 'General'),
                 'ai_summary': analytics.get('significance', ''),
                 'ai_analytics': analytics
             })

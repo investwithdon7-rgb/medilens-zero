@@ -50,11 +50,21 @@ def run():
         prices    = {p.id: p.to_dict() for p in drug_doc.reference.collection("prices").stream()}
 
         first_global_date = drug.get("first_global_approval")
-        # Ensure we have a valid first_dt
+        # Fallback: check approvals for earliest date
+        if not first_global_date and approvals:
+            try:
+                all_dates = [a.get("approval_date")[:10] for a in approvals.values() if a.get("approval_date")]
+                if all_dates:
+                    first_global_date = min(all_dates)
+            except:
+                pass
+
         first_dt = None
         if first_global_date:
             try:
-                first_dt = datetime.fromisoformat(str(first_global_date)[:10])
+                # Handle various formats (YYYY-MM-DD or partial)
+                clean_date = str(first_global_date)[:10].replace("/", "-")
+                first_dt = datetime.fromisoformat(clean_date)
             except (ValueError, TypeError):
                 pass
 
@@ -85,7 +95,7 @@ def run():
                         pass
             else:
                 # Drug not registered — potential gap
-                if first_dt and (now - first_dt).days > 730:
+                if first_dt and (now - first_dt).days > 365:
                     country_data[country]["top_gaps"].append({
                         "inn":           drug_doc.id,
                         "first_approved": first_global_date,

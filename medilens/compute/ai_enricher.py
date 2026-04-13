@@ -15,9 +15,9 @@ def enrich_drugs():
         print("GEMINI_API_KEY NOT FOUND. Skipping enrichment.")
         return
 
-    # Using v1 endpoint for stability with gemini-1.5-flash
-    MODEL = "gemini-1.5-flash"
-    URL   = f"https://generativelanguage.googleapis.com/v1/models/{MODEL}:generateContent?key={api_key}"
+    # Using v1beta endpoint for compatibility with flash-latest
+    MODEL = "gemini-1.5-flash-latest"
+    URL   = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent?key={api_key}"
     
     print(f"Checking for drugs requiring AI enrichment using {MODEL} via REST...")
     

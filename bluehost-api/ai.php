@@ -32,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // ── Config ────────────────────────────────────────────────────────────────────
 $GEMINI_API_KEY  = getenv('GEMINI_API_KEY') ?: 'YOUR_GEMINI_KEY_HERE';
-$GEMINI_MODEL    = 'gemini-1.5-flash';
-$GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1/models/{$GEMINI_MODEL}:generateContent?key={$GEMINI_API_KEY}";
+$GEMINI_MODEL    = 'gemini-1.5-flash-latest';
+$GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{$GEMINI_MODEL}:generateContent?key={$GEMINI_API_KEY}";
 
 $ALLOWED_TASKS = [
     'country_narrative',

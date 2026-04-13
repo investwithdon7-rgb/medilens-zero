@@ -57,6 +57,14 @@ jobs:
         run: npm run build
         working-directory: frontend
 
+      - name: Package PHP AI Proxy
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          mkdir -p frontend/dist/api
+          cp bluehost-api/ai.php frontend/dist/api/
+          sed -i "s/YOUR_GEMINI_KEY_HERE/${GEMINI_API_KEY}/g" frontend/dist/api/ai.php
+
       - name: Deploy to Bluehost via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:

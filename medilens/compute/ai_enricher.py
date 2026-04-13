@@ -57,6 +57,8 @@ def enrich_drugs():
         """
         
         try:
+            import time
+            time.sleep(5) # Respect Gemini free tier limits (15 RPM)
             response = model.generate_content(prompt)
             # Basic JSON extraction from response
             import json
@@ -77,6 +79,9 @@ def enrich_drugs():
             print(f"Updated {inn} with deep analytics.")
         except Exception as e:
             print(f"Error generating analytics for {inn}: {e}")
+            if "429" in str(e) or "Quota" in str(e) or "exhausted" in str(e) or "Too Many Requests" in str(e):
+                print("Hit rate limit. Exiting early so pipeline doesn't build empty dashboard.")
+                exit(1)
             
     if count == 0:
         print("No drugs require enrichment at this time.")

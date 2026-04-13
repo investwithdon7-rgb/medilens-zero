@@ -54,7 +54,7 @@ def run():
         first_dt = None
         if first_global_date:
             try:
-                first_dt = datetime.fromisoformat(first_global_date)
+                first_dt = datetime.fromisoformat(str(first_global_date)[:10])
             except (ValueError, TypeError):
                 pass
 

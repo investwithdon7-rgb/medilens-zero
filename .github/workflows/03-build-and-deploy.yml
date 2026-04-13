@@ -63,7 +63,7 @@ jobs:
         run: |
           mkdir -p frontend/dist/api
           cp bluehost-api/ai.php frontend/dist/api/
-          sed -i "s/YOUR_GEMINI_KEY_HERE/${GEMINI_API_KEY}/g" frontend/dist/api/ai.php
+          sed -i "s|YOUR_GEMINI_KEY_HERE|${GEMINI_API_KEY}|g" frontend/dist/api/ai.php
 
       - name: Deploy to Bluehost via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

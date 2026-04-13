@@ -7,7 +7,7 @@ $MODELS = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-pro'];
 $results = [];
 
 foreach ($MODELS as $m) {
-    $url = "https://generativelanguage.googleapis.com/v1/models/{$m}:generateContent?key={$GEMINI_API_KEY}";
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/{$m}:generateContent?key={$GEMINI_API_KEY}";
     
     $ch = curl_init($url);
     curl_setopt_array($ch, [

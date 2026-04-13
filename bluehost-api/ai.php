@@ -164,9 +164,9 @@ $prompt = build_prompt($task, $payload);
 
 // ── Call Gemini with Fallback ──────────────────────────────────────────────────
 $MODELS_TO_TRY = [
-    ['m' => 'gemini-1.5-flash',        'v' => 'v1'],
-    ['m' => 'gemini-1.5-flash-8b',     'v' => 'v1'],
-    ['m' => 'gemini-1.5-flash-latest', 'v' => 'v1beta'],
+    ['m' => 'gemini-1.5-flash',        'v' => 'v1beta'],
+    ['m' => 'gemini-1.5-flash-8b',     'v' => 'v1beta'],
+    ['m' => 'gemini-1.5-pro',          'v' => 'v1beta'],
 ];
 
 $lastResponse = null;

@@ -28,10 +28,12 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: python -m medilens.ingest.fda
 
-      - name: Run EMA ingestor
+      - name: Ingest Drugs (EMA + EU/UK Focus)
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: python -m medilens.ingest.ema
+        run: |
+          python -m medilens.ingest.ema
+          python -m medilens.ingest.euro_focus
 
       - name: Run WHO Prequalification ingestor
         env:

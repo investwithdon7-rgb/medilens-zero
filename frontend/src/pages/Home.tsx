@@ -82,7 +82,34 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Data sources ribbon ───────────────────────────────── */}
+      {/* EU/UK Focus Spotlight ─────────────────────────────── */}
+      <section className="section" style={{ background: 'var(--card-bg)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+        <div className="container">
+          <div className="grid-2 align-center gap-12">
+            <div>
+              <div className="badge badge-blue mb-4">🌍 Regional Focus</div>
+              <h2 className="mb-4">European & UK Intelligence</h2>
+              <p className="text-secondary leading-relaxed mb-6">
+                MediLens now provides enhanced focus on the <strong>EU27 and United Kingdom</strong> markets. 
+                Our specialized pipeline tracks regulatory timelines from the <strong>EMA and MHRA</strong>, 
+                benchmarked against real-world reimbursement costs from the <strong>NHS Drug Tariff</strong> and 
+                Lauer-Taxe (Germany).
+              </p>
+              <div className="flex gap-4">
+                <Link to="/country/GBR" className="btn btn-outline btn-sm">London MHRA View →</Link>
+                <Link to="/country/DEU" className="btn btn-outline btn-sm">Berlin/EMA View →</Link>
+              </div>
+            </div>
+            <div className="card text-center" style={{ border: '1px solid var(--blue-400)', background: 'rgba(59, 130, 246, 0.05)' }}>
+               <h4 className="text-blue-400 mb-2">UK Access Index</h4>
+               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>14.2 Mo.</div>
+               <p className="text-xs text-muted font-mono">AVG GBR APPROVAL LAG (2025)</p>
+               <hr className="my-4" style={{ borderColor: 'var(--border)' }} />
+               <p className="text-xs text-secondary">Sourced from MHRA Registration Data</p>
+            </div>
+          </div>
+        </div>
+      </section>
       <section className="section" style={{ borderTop: '1px solid var(--border)', paddingTop: '3rem', paddingBottom: '3rem' }}>
         <div className="container">
           <p className="text-center text-xs text-muted mb-4" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.5rem' }}>

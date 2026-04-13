@@ -96,8 +96,8 @@ def run():
     batch = db.batch()
     written = 0
     for country, data in country_data.items():
-        # Keep only top 10 gaps sorted by oldest first-approval
-        data["top_gaps"].sort(key=lambda x: x.get("first_approved") or "")
+        # Keep only top 10 gaps sorted by newest first-approval (modern medicines missing)
+        data["top_gaps"].sort(key=lambda x: x.get("first_approved") or "", reverse=True)
         data["top_gaps"] = data["top_gaps"][:10]
 
         # Simulation for pricing and shortage (Phase 1 realistic mocks)

@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 
-$GEMINI_API_KEY = getenv('GEMINI_API_KEY') ?: 'KEY_NOT_FOUND';
+$GEMINI_API_KEY = 'YOUR_GEMINI_KEY_HERE';
 $MODELS = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-pro'];
 
 $results = [];

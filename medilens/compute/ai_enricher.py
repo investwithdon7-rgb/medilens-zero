@@ -19,14 +19,19 @@ def enrich_drugs():
     print("Checking for drugs requiring AI enrichment...")
     
     drugs_ref = db.collection('drugs')
-    # Fetch drugs without ai_summary
-    drugs = drugs_ref.where('ai_summary', '==', None).limit(20).stream()
+    # Fetch recent drugs and process if missing drug_class or ai_summary
+    drugs = drugs_ref.limit(40).stream()
     
     count = 0
     for doc in drugs:
-        count += 1
-        inn = doc.id
         drug_data = doc.to_dict()
+        if drug_data.get('ai_summary') and drug_data.get('drug_class'):
+            continue
+            
+        count += 1
+        if count > 20: break
+        
+        inn = doc.id
         category  = drug_data.get('drug_class', 'General Therapeutic')
         
         print(f"Generating analytics for {inn} ({category})...")

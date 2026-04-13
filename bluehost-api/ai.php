@@ -41,6 +41,7 @@ $ALLOWED_TASKS = [
     'policy_brief',
     'appeal_letter',
     'drug_summary',
+    'drug_country_analysis',
 ];
 
 // Rate limit: 10 requests per IP per hour
@@ -137,8 +138,18 @@ function build_prompt(string $task, array $payload): string {
             "Write a professional insurance appeal letter requesting coverage for %s. " .
             "Patient context: %s. " .
             "Tone: firm but respectful. Include a clinical necessity argument.",
-            $payload['drug'] ?? 'this medication',
-            $payload['patient_context'] ?? 'a patient requiring this medication'
+            $payload['drug'] ?? 'this drug',
+            $payload['patient_info'] ?? 'standard patient case'
+        ),
+
+        'drug_country_analysis' => sprintf(
+            "You are a pharmaceutical policy and market analyst. Provide a professional, engaging, and in-depth analysis of the access landscape for the drug %s in %s. " .
+            "Please highlight: (1) The potential reasons for the access gap (e.g., patent barriers, regulatory delays, manufacturer priorities). " .
+            "(2) The clinical impact of patients not having access to this specific drug in this region. " .
+            "(3) Any accessible therapeutic equivalents or stopgap solutions currently available. " .
+            "Be factual and structure the analysis in short, readable sections.",
+            $payload['drug'] ?? 'this drug',
+            $payload['country'] ?? 'this country'
         ),
 
         'drug_summary' => sprintf(

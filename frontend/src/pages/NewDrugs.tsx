@@ -36,8 +36,28 @@ export default function NewDrugs() {
         ) : drugs.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="grid-2">
-            {drugs.map(drug => <DrugCard key={drug.id} drug={drug} />)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {Object.entries(
+              drugs.reduce((acc, drug) => {
+                const category = drug.drug_class || 'General Therapies';
+                if (!acc[category]) acc[category] = [];
+                acc[category].push(drug);
+                return acc;
+              }, {} as Record<string, any[]>)
+            )
+              .sort(([catA], [catB]) => catA.localeCompare(catB))
+              .map(([category, categoryDrugs]) => (
+                <div key={category}>
+                  <h2 className="mb-3 text-teal" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                    {category}
+                  </h2>
+                  <div className="grid-2">
+                    {(categoryDrugs as any[]).map(drug => (
+                      <DrugCard key={drug.id} drug={drug} />
+                    ))}
+                  </div>
+                </div>
+              ))}
           </div>
         )}
       </div>

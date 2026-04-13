@@ -6,7 +6,8 @@ export type AiTask =
   | 'policy_brief'
   | 'appeal_letter'
   | 'country_narrative'
-  | 'equivalence';
+  | 'equivalence'
+  | 'drug_country_analysis';
 
 interface AiRequest {
   task: AiTask;

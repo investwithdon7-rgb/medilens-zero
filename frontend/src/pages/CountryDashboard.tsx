@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Globe, Clock, FileText, Send, X, Copy, Check, RefreshCw } from 'lucide-react';
+import { Globe, Clock, X, Copy, Check, RefreshCw } from 'lucide-react';
 import { getCountryDashboard } from '../lib/firebase';
 import { callAiProxy, type AiTask } from '../lib/ai-proxy';
 
@@ -21,21 +21,18 @@ export default function CountryDashboard() {
     });
   }, [code]);
 
-  const handleAdvocacy = async (task: AiTask, title: string) => {
+  const handleDrugAnalysis = async (drugName: string) => {
     if (!data) return;
-    setIsGenerating(task);
+    setIsGenerating(drugName);
     try {
       const content = await callAiProxy({
-        task,
+        task: 'drug_country_analysis',
         payload: {
-          country_name: data.country_name,
-          country_code: code,
-          lag_summary: data.lag_summary,
-          top_gaps: data.top_gaps,
-          ai_narrative: data.ai_narrative
+          country: data.country_name,
+          drug: drugName
         }
       });
-      setAiModal({ title, content, task });
+      setAiModal({ title: `Analysis: ${drugName} in ${data.country_name}`, content, task: 'drug_country_analysis' });
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -110,55 +107,7 @@ export default function CountryDashboard() {
           </div>
         )}
 
-        {/* Advocacy Toolkit */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 className="mb-4 text-teal">Policy & Advocacy Toolkit</h3>
-          <div className="advocacy-grid">
-            <div className="advocacy-card">
-              <div className="flex items-center gap-4 mb-3">
-                <div className="pillar-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--blue-400)', margin: 0 }}>
-                  <FileText size={20} />
-                </div>
-                <div>
-                  <h4 className="font-bold">Ministry Briefing</h4>
-                  <p className="text-xs text-muted">For policy makers</p>
-                </div>
-              </div>
-              <p className="text-sm text-secondary mb-4">
-                Generate a professional evidence-based briefing showing how {data.country_name} lags in global drug access.
-              </p>
-              <button 
-                className="btn btn-primary btn-sm w-full"
-                disabled={!!isGenerating}
-                onClick={() => handleAdvocacy('policy_brief', 'Ministry Of Health Briefing')}
-              >
-                {isGenerating === 'policy_brief' ? 'Generating...' : 'Generate Brief'}
-              </button>
-            </div>
 
-            <div className="advocacy-card">
-              <div className="flex items-center gap-4 mb-3">
-                <div className="pillar-icon" style={{ background: 'rgba(251, 191, 36, 0.1)', color: 'var(--amber-400)', margin: 0 }}>
-                  <Send size={20} />
-                </div>
-                <div>
-                  <h4 className="font-bold">Citizen Petition</h4>
-                  <p className="text-xs text-muted">For patient advocacy</p>
-                </div>
-              </div>
-              <p className="text-sm text-secondary mb-4">
-                Draft a formal petition to improve drug registration speed and transparency in {data.country_name}.
-              </p>
-              <button 
-                className="btn btn-ghost btn-sm w-full"
-                disabled={!!isGenerating}
-                onClick={() => handleAdvocacy('appeal_letter', 'Citizen Advocacy Petition')}
-              >
-                {isGenerating === 'appeal_letter' ? 'Generating...' : 'Generate Petition'}
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* Top access gaps */}
         {gaps.length > 0 && (
@@ -169,19 +118,27 @@ export default function CountryDashboard() {
             </div>
             {gaps.map((g: any, i: number) => (
               <div key={i} className="timeline-row">
-                <span className="timeline-country">
+                <span className="timeline-country" style={{ flex: 2 }}>
                   <span className="dot-not-filed" style={{ marginRight: 8 }} />
                   {g.inn}
                 </span>
-                <span className="timeline-authority text-muted">{g.authority}</span>
-                <span className="timeline-date text-sm">
+                <span className="timeline-authority text-muted" style={{ flex: 1 }}>{g.authority}</span>
+                <span className="timeline-date text-sm" style={{ flex: 1.5 }}>
                   First: {g.first_approved
                     ? new Date(g.first_approved).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })
                     : '—'}
                 </span>
-                <span className="timeline-lag">
+                <span className="timeline-lag" style={{ flex: 1 }}>
                   <span className="badge badge-red">{g.condition}</span>
                 </span>
+                <button 
+                  className="btn btn-outline btn-sm"
+                  disabled={isGenerating === g.inn}
+                  onClick={() => handleDrugAnalysis(g.inn)}
+                  style={{ marginLeft: 'auto' }}
+                >
+                  {isGenerating === g.inn ? '...' : 'Analyze'}
+                </button>
               </div>
             ))}
           </div>

@@ -99,7 +99,7 @@ def run():
                     country_data[country]["top_gaps"].append({
                         "inn":           drug_doc.id,
                         "first_approved": first_global_date,
-                        "condition":     drug.get("drug_class", "—"),
+                        "condition":      drug.get("drug_class") or "Pending Analysis",
                     })
 
     # Write one document per country

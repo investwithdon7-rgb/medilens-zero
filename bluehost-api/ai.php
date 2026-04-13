@@ -164,17 +164,19 @@ $prompt = build_prompt($task, $payload);
 
 // ── Call Gemini with Fallback ──────────────────────────────────────────────────
 $MODELS_TO_TRY = [
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-2.0-flash',
+    ['m' => 'gemini-1.5-flash',        'v' => 'v1'],
+    ['m' => 'gemini-1.5-flash-latest', 'v' => 'v1beta'],
+    ['m' => 'gemini-1.5-pro',          'v' => 'v1'],
 ];
 
 $lastResponse = null;
 $lastHttpCode = 0;
 $successText  = null;
 
-foreach ($MODELS_TO_TRY as $tryModel) {
-    $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$tryModel}:generateContent?key={$GEMINI_API_KEY}";
+foreach ($MODELS_TO_TRY as $cfg) {
+    $tryModel = $cfg['m'];
+    $apiVer   = $cfg['v'];
+    $endpoint = "https://generativelanguage.googleapis.com/{$apiVer}/models/{$tryModel}:generateContent?key={$GEMINI_API_KEY}";
     
     $geminiBody = json_encode([
         'contents'         => [['parts' => [['text' => $prompt]]]],

@@ -29,17 +29,19 @@ def enrich_drugs():
         return
 
     count = 0
+    MAX_PER_RUN = 10
     for doc in drugs:
+        if count >= MAX_PER_RUN:
+            print(f"Reached limit of {MAX_PER_RUN} enrichments. Stopping.")
+            break
         drug_data = doc.to_dict()
         # Skip if already enriched
         if drug_data.get('ai_summary') and drug_data.get('drug_class') and drug_data.get('drug_class') not in ['—', 'General Therapeutic', 'General']:
             continue
             
         count += 1
-        if count > 50: # Batch limit per run to stay well within daily quotas
-            print("Reached batch limit (50). Stopping for now.")
-            break
-        
+        inn = doc.id
+        print(f"Enriching drug {count}/{MAX_PER_RUN}: {inn}...")
         inn = doc.id
         category  = drug_data.get('drug_class', 'General Therapeutic')
         

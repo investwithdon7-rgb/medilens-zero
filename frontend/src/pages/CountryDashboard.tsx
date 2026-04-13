@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Globe, Clock, X, Copy, Check, RefreshCw } from 'lucide-react';
 import { getCountryDashboard } from '../lib/firebase';
-import { callAiProxy, type AiTask } from '../lib/ai-proxy';
+import { callAiProxy } from '../lib/ai-proxy';
 
 export default function CountryDashboard() {
   const { code }           = useParams<{ code: string }>();

@@ -192,7 +192,7 @@ curl_close($ch);
 
 if ($httpCode !== 200 || !$response) {
     http_response_code(502);
-    echo json_encode(['error' => 'AI service temporarily unavailable']);
+    echo json_encode(['error' => 'AI service temporarily unavailable', 'status' => $httpCode, 'details' => $response, 'key_used' => substr($GEMINI_API_KEY, 0, 5) . '...']);
     exit;
 }
 

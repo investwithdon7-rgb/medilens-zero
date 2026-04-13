@@ -20,16 +20,16 @@ def enrich_drugs():
     
     drugs_ref = db.collection('drugs')
     # Fetch recent drugs and process if missing drug_class or ai_summary
-    drugs = drugs_ref.limit(40).stream()
+    drugs = drugs_ref.stream()
     
     count = 0
     for doc in drugs:
         drug_data = doc.to_dict()
-        if drug_data.get('ai_summary') and drug_data.get('drug_class'):
+        if drug_data.get('ai_summary') and drug_data.get('drug_class') and drug_data.get('drug_class') != 'General Therapeutic' and drug_data.get('drug_class') != 'General':
             continue
             
         count += 1
-        if count > 20: break
+        if count > 500: break
         
         inn = doc.id
         category  = drug_data.get('drug_class', 'General Therapeutic')

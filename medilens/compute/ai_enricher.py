@@ -14,7 +14,7 @@ def enrich_drugs():
         return
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash-latest')
     
     print("Checking for drugs requiring AI enrichment...")
     

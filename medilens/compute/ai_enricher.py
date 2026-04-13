@@ -29,7 +29,7 @@ def enrich_drugs():
         return
 
     count = 0
-    MAX_PER_RUN = 10
+    MAX_PER_RUN = 2
     for doc in drugs:
         if count >= MAX_PER_RUN:
             print(f"Reached limit of {MAX_PER_RUN} enrichments. Stopping.")

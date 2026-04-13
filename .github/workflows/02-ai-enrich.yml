@@ -25,6 +25,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run AI drug summaries (Gemini)
+        continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}

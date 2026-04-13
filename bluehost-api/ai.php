@@ -32,8 +32,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // ── Config ────────────────────────────────────────────────────────────────────
 $GEMINI_API_KEY  = getenv('GEMINI_API_KEY') ?: 'YOUR_GEMINI_KEY_HERE';
-$GEMINI_MODEL    = 'gemini-1.5-flash-latest';
-$GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{$GEMINI_MODEL}:generateContent?key={$GEMINI_API_KEY}";
 
 $ALLOWED_TASKS = [
     'country_narrative',
@@ -164,45 +162,60 @@ function build_prompt(string $task, array $payload): string {
 
 $prompt = build_prompt($task, $payload);
 
-// ── Call Gemini ──────────────────────────────────────────────────────────────
-$geminiBody = json_encode([
-    'contents' => [[
-        'parts' => [['text' => $prompt]]
-    ]],
-    'generationConfig' => [
-        'maxOutputTokens' => 512,
-        'temperature'     => 0.4,
-    ],
-    'safetySettings' => [
-        ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'],
-    ],
-]);
+// ── Call Gemini with Fallback ──────────────────────────────────────────────────
+$MODELS_TO_TRY = [
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-2.0-flash',
+];
 
-$ch = curl_init($GEMINI_ENDPOINT);
-curl_setopt_array($ch, [
-    CURLOPT_POST           => true,
-    CURLOPT_POSTFIELDS     => $geminiBody,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT        => 25,
-    CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-]);
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+$lastResponse = null;
+$lastHttpCode = 0;
+$successText  = null;
 
-if ($httpCode !== 200 || !$response) {
+foreach ($MODELS_TO_TRY as $tryModel) {
+    $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$tryModel}:generateContent?key={$GEMINI_API_KEY}";
+    
+    $geminiBody = json_encode([
+        'contents'         => [['parts' => [['text' => $prompt]]]],
+        'generationConfig' => ['maxOutputTokens' => 800, 'temperature' => 0.4],
+    ]);
+
+    $ch = curl_init($endpoint);
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $geminiBody,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 20,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+    ]);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    $lastResponse = $response;
+    $lastHttpCode = $httpCode;
+
+    if ($httpCode === 200 && $response) {
+        $data = json_decode($response, true);
+        $successText = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+        if ($successText) break; // Found a working model!
+    }
+    
+    // If we hit 429, don't immediately retry another model too quickly, but let's try the next one anyway
+    // as some projects have independent quotas per model.
+}
+
+if (!$successText) {
     http_response_code(502);
-    echo json_encode(['error' => 'AI service temporarily unavailable', 'status' => $httpCode, 'details' => $response, 'key_used' => substr($GEMINI_API_KEY, 0, 5) . '...']);
+    echo json_encode([
+        'error'   => 'AI service temporarily unavailable', 
+        'status'  => $lastHttpCode, 
+        'details' => $lastResponse,
+        'tried'   => $MODELS_TO_TRY
+    ]);
     exit;
 }
 
-$geminiData = json_decode($response, true);
-$text = $geminiData['candidates'][0]['content']['parts'][0]['text'] ?? null;
-
-if (!$text) {
-    http_response_code(502);
-    echo json_encode(['error' => 'No content returned from AI service']);
-    exit;
-}
-
-echo json_encode(['result' => $text]);
+echo json_encode(['result' => $successText]);

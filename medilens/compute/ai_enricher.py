@@ -69,40 +69,49 @@ def enrich_drugs():
             "generationConfig": {"temperature": 0.4, "maxOutputTokens": 800}
         }
 
-        try:
-            time.sleep(10) # Heavy sleep (6 RPM) to ensure we NEVER hit 429
-            res = requests.post(URL, json=payload, timeout=30)
-            
-            if res.status_code == 429:
-                print("Rate limit reached (429). Exiting early to preserve quota.")
-                return
-            
-            if res.status_code != 200:
-                print(f"API Error {res.status_code}: {res.text}")
+        # Try multiple models in case of quota/availability issues
+        MODELS = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash"]
+        success = False
+        
+        for try_model in MODELS:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{try_model}:generateContent?key={api_key}"
+                time.sleep(11) # Respect Gemini free tier limits (stable)
+                res = requests.post(url, json=payload, timeout=30)
+                
+                if res.status_code == 200:
+                    resp_data = res.json()
+                    raw_text  = resp_data['candidates'][0]['content']['parts'][0]['text'].strip()
+                    
+                    # Clean up potential markdown formatting
+                    if "```json" in raw_text:
+                        raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+                    elif "```" in raw_text:
+                        raw_text = raw_text.split("```")[1].split("```")[0].strip()
+                    
+                    analytics = json.loads(raw_text)
+                    
+                    doc.reference.update({
+                        'drug_class': analytics.get('drug_class', 'General'),
+                        'ai_summary': analytics.get('significance', ''),
+                        'ai_analytics': analytics,
+                        'last_enriched': inventory_date()
+                    })
+                    print(f"Successfully updated {inn} using {try_model}")
+                    success = True
+                    break
+                elif res.status_code == 429:
+                    print(f"Rate limit for {try_model}. Trying next...")
+                    continue
+                else:
+                    print(f"Model {try_model} failed ({res.status_code}). Trying next...")
+                    continue
+            except Exception as e:
+                print(f"Error with {try_model}: {e}")
                 continue
-
-            resp_data = res.json()
-            raw_text  = resp_data['candidates'][0]['content']['parts'][0]['text'].strip()
-            
-            # Clean up potential markdown formatting
-            if "```json" in raw_text:
-                raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in raw_text:
-                raw_text = raw_text.split("```")[1].split("```")[0].strip()
-            
-            analytics = json.loads(raw_text)
-            
-            doc.reference.update({
-                'drug_class': analytics.get('drug_class', 'General'),
-                'ai_summary': analytics.get('significance', ''),
-                'ai_analytics': analytics,
-                'last_enriched': inventory_date() # Optional tracking
-            })
-            print(f"Successfully updated {inn}")
-            
-        except Exception as e:
-            print(f"Error processing {inn}: {e}")
-            continue
+        
+        if not success:
+            print(f"Failed to enrich {inn} with any available model.")
 
     if count == 0:
         print("No drugs require enrichment.")

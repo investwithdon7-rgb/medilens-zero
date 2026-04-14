@@ -1,226 +1,134 @@
 <?php
 /**
- * MediLens Multi-Mode AI Proxy
- * Location: /public_html/medilens/api/ai.php
- * 
- * Redundancy: Tries Gemini (multiple models) -> Fallback to Groq.
+ * MediLens AI Proxy - Linear Version
  */
 
-// ── CORS ──────────────────────────────────────────────────────────────────────
 $origin = $_SERVER['HTTP_ORIGIN'] ?? 'https://tekdruid.com';
 header("Access-Control-Allow-Origin: $origin");
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json; charset=utf-8');
 
-ini_set('display_errors', 0); // Keep JSON clean, but log errors internally if needed
-error_reporting(E_ALL);
-
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['error' => 'Method not allowed']);
-    exit;
-}
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
 
 // ── Credentials ───────────────────────────────────────────────────────────────
-// These are replaced during GitHub Action deployment or read from environment
 $GEMINI_API_KEY = getenv('GEMINI_API_KEY') ?: 'YOUR_GEMINI_KEY_HERE';
 $GROQ_API_KEY   = getenv('GROQ_API_KEY')   ?: 'YOUR_GROQ_KEY_HERE';
 
-$GLOBALS['AI_ERRORS'] = [];
-$GLOBALS['AI_ERRORS'][] = "Debug: Gemini key length ".strlen($GEMINI_API_KEY)." (Start: ".substr($GEMINI_API_KEY, 0, 4).")";
-$GLOBALS['AI_ERRORS'][] = "Debug: Groq key length ".strlen($GROQ_API_KEY)." (Start: ".substr($GROQ_API_KEY, 0, 4).")";
+$DEBUG_LOG = [];
+$DEBUG_LOG[] = "Init: Gemini(".strlen($GEMINI_API_KEY)."), Groq(".strlen($GROQ_API_KEY).")";
 
-// Connectivity Test
-$test_ch = curl_init("https://www.google.com");
-curl_setopt($test_ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($test_ch, CURLOPT_TIMEOUT, 5);
-curl_exec($test_ch);
-$test_code = curl_getinfo($test_ch, CURLINFO_HTTP_CODE);
-$test_err = curl_error($test_ch);
-curl_close($test_ch);
-$GLOBALS['AI_ERRORS'][] = "Connectivity Test (Google): Code $test_code, Error: $test_err";
-
-$ALLOWED_TASKS = [
-    'country_narrative',
-    'equivalence',
-    'policy_brief',
-    'appeal_letter',
-    'drug_summary',
-    'drug_country_analysis',
-];
-
-// ── Parse body ─────────────────────────────────────────────────────────────────
-$raw  = file_get_contents('php://input');
-if (strlen($raw) > 16384) {
-    http_response_code(413);
-    echo json_encode(['error' => 'Request too large']);
-    exit;
-}
-
+// ── Parse Body ────────────────────────────────────────────────────────────────
+$raw = file_get_contents('php://input');
 $body = json_decode($raw, true);
+
 if (!$body || !isset($body['task'], $body['payload'])) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid request body']);
+    echo json_encode(['error' => 'Invalid request', 'debug' => $DEBUG_LOG]);
     exit;
 }
 
-$task    = $body['task'];
+$task = $body['task'];
 $payload = $body['payload'];
 
-if (!in_array($task, $ALLOWED_TASKS, true)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Unknown task']);
-    exit;
+// ── Build Prompt ──────────────────────────────────────────────────────────────
+$prompt = "Provide pharmaceutical intelligence for task: " . $task . ". ";
+if ($task === 'drug_summary') {
+    $prompt = "Explain what " . ($payload['inn'] ?? 'this drug') . " is (therapeutic class and primary use) precisely in 2 sentences.";
+} else if ($task === 'policy_brief' || $task === 'drug_country_analysis' || $task === 'country_narrative') {
+    $prompt = "Analyze drug access for " . ($payload['drug'] ?? $payload['inn'] ?? 'the drug') . " in " . ($payload['country'] ?? $payload['country_name'] ?? 'the market') . ". " .
+              "Focus on registration lags and pricing. Data: " . json_encode($payload['data'] ?? []);
+} else {
+    $prompt = "Analyze: " . json_encode($payload);
 }
 
-// ── Build prompt ──────────────────────────────────────────────────────────────
-function build_prompt(string $task, array $payload): string {
-    return match ($task) {
-        'country_narrative' => sprintf(
-            "You are a pharmaceutical policy analyst. Write a 2-paragraph summary for %s, covering: " .
-            "(1) drug access state & registration lags, (2) pricing compared to global averages. " .
-            "Be factual and professional. Data: %s",
-            $payload['country_name'] ?? 'the region',
-            json_encode($payload['data'] ?? [])
-        ),
-        'equivalence' => sprintf(
-            "You are a clinical pharmacist. A patient in %s cannot access %s. " .
-            "List 3 therapeutic alternatives available there. Be concise.",
-            $payload['country'] ?? 'their country',
-            $payload['drug'] ?? 'this drug'
-        ),
-        'policy_brief' => sprintf(
-            "Write a 300-word policy brief for %s in %s. Focus on the access gap and clinical necessity. " .
-            "Include 'Recommendation' and 'Evidence' sections.",
-            $payload['drug'] ?? 'this medicine',
-            $payload['country'] ?? 'this market'
-        ),
-        'appeal_letter' => sprintf(
-            "Write a professional insurance appeal letter for %s. " .
-            "Patient context: %s. Use a firm, clinical tone.",
-            $payload['drug'] ?? 'this drug',
-            $payload['patient_info'] ?? 'standard patient case'
-        ),
-        'drug_country_analysis' => sprintf(
-            "Analyze the access landscape for %s in %s. Discuss registration delays and clinical impact. " .
-            "Break into short readable sections.",
-            $payload['drug'] ?? 'this drug',
-            $payload['country'] ?? 'this country'
-        ),
-        'drug_summary' => sprintf(
-            "Explain what %s is (therapeutic class and primary use) for a general audience. Max 2 sentences.",
-            $payload['inn'] ?? 'this drug'
-        ),
-        default => "Provide pharmaceutical intelligence on the requested topic."
-    };
-}
+// ── Attempt 1: Gemini ─────────────────────────────────────────────────────────
+$final_result = null;
+$source = null;
 
-$prompt = build_prompt($task, $payload);
-
-// ── Providers ────────────────────────────────────────────────────────────────
-function call_gemini($prompt, $apiKey) {
-    if (!$apiKey || $apiKey === 'YOUR_GEMINI_KEY_HERE') return null;
-
-    $models = [
-        ['m' => 'gemini-flash-latest',     'v' => 'v1beta'],
-        ['m' => 'gemini-1.5-flash-latest', 'v' => 'v1beta'],
-        ['m' => 'gemini-1.5-flash',        'v' => 'v1beta'],
-    ];
-
-    foreach ($models as $cfg) {
-        $url = "https://generativelanguage.googleapis.com/{$cfg['v']}/models/{$cfg['m']}:generateContent?key={$apiKey}";
-        $data = json_encode([
-            'contents'         => [['parts' => [['text' => $prompt]]]],
-            'generationConfig' => ['maxOutputTokens' => 1000, 'temperature' => 0.4]
-        ]);
-
+if ($GEMINI_API_KEY && $GEMINI_API_KEY !== 'YOUR_GEMINI_KEY_HERE') {
+    $models = ['gemini-flash-latest', 'gemini-1.5-flash'];
+    foreach ($models as $m) {
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent?key=$GEMINI_API_KEY";
+        $postData = json_encode(['contents' => [['parts' => [['text' => $prompt]]]]]);
+        
         $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $data,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT        => 15
-        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        
         $res = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err = curl_error($ch);
         curl_close($ch);
-
+        
+        $DEBUG_LOG[] = "Gemini($m): Code $code" . ($err ? " Error: $err" : "");
+        
         if ($code === 200) {
             $json = json_decode($res, true);
             $text = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
-            if ($text) return $text;
+            if ($text) {
+                $final_result = $text;
+                $source = "Gemini ($m)";
+                break;
+            }
         }
-        
-        $GLOBALS['AI_ERRORS'][] = "Gemini Model {$cfg['m']} failed: Code $code, Error: $err";
     }
-    return null;
 }
 
-function call_groq($prompt, $apiKey) {
-    if (!$apiKey || $apiKey === 'YOUR_GROQ_KEY_HERE') return null;
-
+// ── Attempt 2: Groq ───────────────────────────────────────────────────────────
+if (!$final_result && $GROQ_API_KEY && $GROQ_API_KEY !== 'YOUR_GROQ_KEY_HERE') {
     $url = "https://api.groq.com/openai/v1/chat/completions";
-    $data = json_encode([
+    $postData = json_encode([
         'model' => 'llama-3.1-8b-instant',
         'messages' => [['role' => 'user', 'content' => $prompt]],
-        'temperature' => 0.4,
-        'max_tokens' => 1000
+        'temperature' => 0.4
     ]);
-
+    
     $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => $data,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER     => [
-            'Content-Type: application/json',
-            "Authorization: Bearer $apiKey"
-        ],
-        CURLOPT_TIMEOUT        => 15
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $GROQ_API_KEY
     ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    
     $res = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err = curl_error($ch);
     curl_close($ch);
-
+    
+    $DEBUG_LOG[] = "Groq: Code $code" . ($err ? " Error: $err" : "");
+    
     if ($code === 200) {
         $json = json_decode($res, true);
-        return $json['choices'][0]['message']['content'] ?? null;
+        $text = $json['choices'][0]['message']['content'] ?? null;
+        if ($text) {
+            $final_result = $text;
+            $source = "Groq (llama-3.1)";
+        }
     }
-
-    $GLOBALS['AI_ERRORS'][] = "Groq failed: Code $code, Error: $err";
-    return null;
 }
 
-// ── Execution Loop ───────────────────────────────────────────────────────────
-$result = call_gemini($prompt, $GEMINI_API_KEY);
-
-if (!$result) {
-    $result = call_groq($prompt, $GROQ_API_KEY);
-    $source = 'Groq';
+// ── Output ────────────────────────────────────────────────────────────────────
+if ($final_result) {
+    echo json_encode([
+        'result' => $final_result,
+        'provider' => $source,
+        'debug' => $DEBUG_LOG
+    ]);
 } else {
-    $source = 'Gemini';
-}
-
-if (!$result) {
     http_response_code(502);
     echo json_encode([
-        'error' => 'All AI providers exhausted. Please check API keys.',
-        'details' => $GLOBALS['AI_ERRORS'] ?? []
+        'error' => 'AI generation failed',
+        'debug' => $DEBUG_LOG
     ]);
-    exit;
 }
-
-echo json_encode([
-    'result' => $result, 
-    'provider' => $source,
-    'debug' => $GLOBALS['AI_ERRORS'] ?? []
-]);

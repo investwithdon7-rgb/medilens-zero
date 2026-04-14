@@ -65,8 +65,8 @@ jobs:
           mkdir -p frontend/dist/api
           cp bluehost-api/* frontend/dist/api/
           # Replace keys in PHP files
-          sed -i "s@YOUR_GEMINI_KEY_HERE@${GEMINI_API_KEY}@g" frontend/dist/api/*.php
-          sed -i "s@YOUR_GROQ_KEY_HERE@${GROQ_API_KEY}@g" frontend/dist/api/*.php
+          sed -i "s|YOUR_GEMINI_KEY_HERE|${GEMINI_API_KEY}|g" frontend/dist/api/*.php
+          sed -i "s|YOUR_GROQ_KEY_HERE|${GROQ_API_KEY}|g" frontend/dist/api/*.php
 
       - name: Deploy to Bluehost via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

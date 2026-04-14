@@ -29,7 +29,8 @@ export default function CountryDashboard() {
         task: 'drug_country_analysis',
         payload: {
           country: data.country_name,
-          drug: drugName
+          drug: drugName,
+          gap_data: data.top_gaps?.find((g: any) => g.inn === drugName)
         }
       });
       setAiModal({ title: `Analysis: ${drugName} in ${data.country_name}`, content, task: 'drug_country_analysis' });

@@ -34,7 +34,27 @@ if (!$body || !isset($body['task'], $body['payload'])) {
 
 $task = $body['task'];
 $payload = $body['payload'];
-$prompt = "Explain " . ($payload['inn'] ?? $payload['drug'] ?? 'this drug') . " in 2 sentences.";
+
+$drugName = $payload['drug'] ?? $payload['inn'] ?? 'this drug';
+$country  = $payload['country'] ?? 'your region';
+$gapData  = $payload['gap_data'] ?? null;
+
+$prompt = "As a global medicine intelligence expert, provide a high-level Strategic Access Analysis for $drugName in $country.\n\n";
+
+if ($gapData) {
+    $firstDate = $gapData['first_approved'] ?? 'Unknown';
+    $authority = $gapData['authority'] ?? 'Global regulator';
+    $prompt .= "CONTEXT:\n";
+    $prompt .= "- Global First Approval: $firstDate ($authority)\n";
+    $prompt .= "- Current Status in $country: NOT REGISTERED (Access Gap)\n\n";
+}
+
+$prompt .= "STRUCTURE YOUR RESPONSE AS FOLLOWS (be precise, data-driven, and professional):\n";
+$prompt .= "1. DRUG PROFILE: 1 sentence on therapeutic class and use.\n";
+$prompt .= "2. REGISTRATION LAG: Analyze the clinical delay since global first approval. Be specific about the impact of the wait.\n";
+$prompt .= "3. ECONOMIC BARRIER: Discuss potential pricing disparities or affordability challenges for this drug class in $country.\n";
+$prompt .= "4. ADVOCACY VIEW: One actionable recommendation for patient access.\n\n";
+$prompt .= "Keep the total length under 180 words. Focus on analysis, not just descriptions.";
 
 $final_result = null;
 $source = null;

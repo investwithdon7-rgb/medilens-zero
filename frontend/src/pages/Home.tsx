@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 
 const pillars = [
-  { icon: <Clock size={22} />, title: 'Approval Lag Monitor',      desc: 'How many years behind is your country for this drug?',          href: '/drug/semaglutide', color: '#2dd4bf' },
+  { icon: <Clock size={22} />, title: 'Approval Lag Monitor',      desc: 'How many years behind is your country for this drug?',          href: '/countries', color: '#2dd4bf' },
   { icon: <Globe size={22} />, title: 'Therapeutic Landscape',     desc: 'What does your country use for a condition vs. others?',         href: '/countries',      color: '#60a5fa' },
   { icon: <Zap size={22} />,   title: 'New Drug Radar',            desc: 'What new drugs were approved globally? Which reached you?',      href: '/new-drugs',        color: '#c084fc' },
   { icon: <DollarSign size={22} />, title: 'Global Pricing',       desc: 'What does this drug cost worldwide? Where does your country rank?', href: '/countries',   color: '#fbbf24' },

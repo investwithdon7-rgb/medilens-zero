@@ -166,8 +166,12 @@ $prompt = build_prompt($task, $payload);
 // ── Call Gemini with Fallback ──────────────────────────────────────────────────
 $MODELS_TO_TRY = [
     ['m' => 'gemini-1.5-flash',        'v' => 'v1beta'],
+    ['m' => 'gemini-1.5-flash-latest', 'v' => 'v1beta'],
+    ['m' => 'gemini-2.0-flash',        'v' => 'v1beta'],
     ['m' => 'gemini-1.5-flash-8b',     'v' => 'v1beta'],
     ['m' => 'gemini-1.5-pro',          'v' => 'v1beta'],
+    ['m' => 'gemini-1.0-pro',          'v' => 'v1beta'],
+    ['m' => 'gemini-pro',              'v' => 'v1'],
 ];
 
 $lastResponse = null;
@@ -198,9 +202,16 @@ foreach ($MODELS_TO_TRY as $cfg) {
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    $lastResponse = $response;
-    $lastHttpCode = $httpCode;
-    $allErrors[] = ['model' => $tryModel, 'status' => $httpCode, 'response' => json_decode($response) ?? $response];
+    // Masked key for debugging (e.g. AIza...4chars)
+    $maskedKey = substr($GEMINI_API_KEY, 0, 4) . '...' . substr($GEMINI_API_KEY, -4);
+    $keyLen = strlen($GEMINI_API_KEY);
+
+    $allErrors[] = [
+        'model' => $tryModel, 
+        'status' => $httpCode, 
+        'key_info' => "$maskedKey ($keyLen)",
+        'response' => json_decode($response) ?? $response
+    ];
 
     if ($httpCode === 200 && $response) {
         $data = json_decode($response, true);

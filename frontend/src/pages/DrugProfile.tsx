@@ -41,10 +41,15 @@ export default function DrugProfile() {
       const content = await callAiProxy({
         task,
         payload: {
-          drug_name: drug.inn,
+          drug: drug.inn,
+          country: approvals.find(a => a.approval_date)?.country || 'Global',
           drug_class: drug.drug_class,
           brand_names: drug.brand_names,
           approvals: approvals,
+          data: {
+            first_approval: approvals[0],
+            total_approvals: approvals.filter(a => a.approval_date).length
+          }
         }
       });
       setAiModal({ title, content, task });

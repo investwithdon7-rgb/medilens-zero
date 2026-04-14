@@ -74,26 +74,43 @@ export default function CountryDashboard() {
       <div className="container section">
         {/* Summary cards */}
         <div className="grid-4" style={{ marginBottom: '1.5rem' }}>
-          <div className="stat-card">
-            <div className="stat-value text-amber">{lag.drugs_behind_2yr ?? '—'}</div>
-            <div className="stat-label">Drugs &gt;2yr behind</div>
+          <div 
+            className="stat-card clickable-card"
+            onClick={() => {
+              if (data.drugs_behind_2yr > 0) {
+                document.getElementById('access-gaps')?.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+          >
+            <div className="stat-value text-amber">{lag.drugs_behind_2yr ?? '0'}</div>
+            <div className="stat-label flex items-center gap-1">
+              Drugs &gt;2yr behind
+            </div>
             <div className="stat-delta">vs global first approval</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value text-red">{data.new_drugs_not_registered ?? '—'}</div>
-            <div className="stat-label">New drugs not registered</div>
-            <div className="stat-delta">approved elsewhere, not here</div>
+
+          <div 
+            className="stat-card clickable-card highlight-card"
+            onClick={() => document.getElementById('access-gaps')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            <div className="stat-value text-red">{data.new_drugs_not_registered ?? '0'}</div>
+            <div className="stat-label flex items-center gap-1">
+              New drugs not registered
+            </div>
+            <div className="stat-delta">Click to see which {data.new_drugs_not_registered} drugs</div>
           </div>
+
           <div className="stat-card">
             <div className="stat-value text-teal">
               {data.pricing_percentile != null ? `${data.pricing_percentile}th` : '—'}
             </div>
-            <div className="stat-label">Pricing percentile</div>
+            <div className="stat-label">Pricing percentile (Beta)</div>
             <div className="stat-delta">globally for EML basket</div>
           </div>
+
           <div className="stat-card">
-            <div className="stat-value text-purple-400">{data.shortage_risk_high ?? '—'}</div>
-            <div className="stat-label">High shortage risk</div>
+            <div className="stat-value text-purple-400">{data.shortage_risk_high ?? '0'}</div>
+            <div className="stat-label">High shortage risk (Beta)</div>
             <div className="stat-delta">vulnerability score &gt; 0.7</div>
           </div>
         </div>
@@ -112,7 +129,7 @@ export default function CountryDashboard() {
 
         {/* Top access gaps */}
         {gaps.length > 0 && (
-          <div className="card card-lg">
+          <div id="access-gaps" className="card card-lg">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
               <Clock size={18} style={{ color: 'var(--amber-400)' }} />
               <h3>Biggest Access Gaps</h3>

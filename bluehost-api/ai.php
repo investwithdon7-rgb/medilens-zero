@@ -111,9 +111,9 @@ function call_gemini($prompt, $apiKey) {
     if (!$apiKey || $apiKey === 'YOUR_GEMINI_KEY_HERE') return null;
 
     $models = [
+        ['m' => 'gemini-flash-latest',     'v' => 'v1beta'],
         ['m' => 'gemini-1.5-flash-latest', 'v' => 'v1beta'],
-        ['m' => 'gemini-1.5-pro',          'v' => 'v1beta'],
-        ['m' => 'gemini-pro',              'v' => 'v1'],
+        ['m' => 'gemini-1.5-flash',        'v' => 'v1beta'],
     ];
 
     foreach ($models as $cfg) {
@@ -149,7 +149,7 @@ function call_groq($prompt, $apiKey) {
 
     $url = "https://api.groq.com/openai/v1/chat/completions";
     $data = json_encode([
-        'model' => 'llama3-70b-8192',
+        'model' => 'llama-3.1-8b-instant',
         'messages' => [['role' => 'user', 'content' => $prompt]],
         'temperature' => 0.4,
         'max_tokens' => 1000

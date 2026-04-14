@@ -58,11 +58,15 @@ def ingest_gprm_sample():
         PriceEntry("TRASTUZUMAB", "USA", 3500.00, "USD", "440mg vial", "Market Average", "2023-11-01"),
         PriceEntry("AZELASTINE HYDROCHLORIDE", "Germany", 12.40, "EUR", "10ml spray", "BfArM", "2024-02-01"),
         PriceEntry("AZELASTINE HYDROCHLORIDE", "USA", 45.00, "USD", "10ml spray", "GoodRx", "2024-02-01"),
-        PriceEntry("DIAZOXIDE CHOLINE", "UK", 1250.00, "GBP", "100 tablets", "NHS Drug Tariff", "2024-01-01"),
-        PriceEntry("DIAZOXIDE CHOLINE", "USA", 4200.00, "USD", "100 tablets", "Medicaid", "2024-01-01"),
-        PriceEntry("ASPIRIN", "Global Median", 0.02, "USD", "1 tablet", "WHO EML Price", "2024-01-01"),
+        PriceEntry("METFORMIN", "Global Median", 0.015, "USD", "1 tablet", "WHO EML", "2024-01-01"),
+        PriceEntry("METFORMIN", "Sri Lanka", 0.008, "USD", "1 tablet", "NMRA", "2024-01-01"),
+        PriceEntry("AMLODIPINE", "UK", 0.02, "GBP", "1 tablet", "NHS", "2024-01-01"),
+        PriceEntry("AMLODIPINE", "USA", 0.45, "USD", "1 tablet", "Market", "2024-01-01"),
+        PriceEntry("AMOXICILLIN/CLAVULANATE", "Global Median", 0.18, "USD", "1 tablet", "WHO EML", "2024-01-01"),
         PriceEntry("DAPAGLIFLOZIN", "Germany", 45.20, "EUR", "28 tablets", "Lauer-Taxe", "2024-03-01"),
         PriceEntry("DAPAGLIFLOZIN", "United Kingdom", 36.59, "GBP", "28 tablets", "NHS Tariff", "2024-03-01"),
+        PriceEntry("ATORVASTATIN", "USA", 0.35, "USD", "1 tablet", "GoodRx", "2024-01-01"),
+        PriceEntry("ATORVASTATIN", "Global Median", 0.04, "USD", "1 tablet", "WHO EML", "2024-01-01"),
     ]
     
     ingestor = PricingIngestor()

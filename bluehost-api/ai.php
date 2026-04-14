@@ -14,7 +14,8 @@
  */
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-header('Access-Control-Allow-Origin: https://tekdruid.com');
+$origin = $_SERVER['HTTP_ORIGIN'] ?? 'https://tekdruid.com';
+header("Access-Control-Allow-Origin: $origin");
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json; charset=utf-8');
@@ -172,6 +173,7 @@ $MODELS_TO_TRY = [
 $lastResponse = null;
 $lastHttpCode = 0;
 $successText  = null;
+$allErrors = [];
 
 foreach ($MODELS_TO_TRY as $cfg) {
     $tryModel = $cfg['m'];
@@ -198,15 +200,13 @@ foreach ($MODELS_TO_TRY as $cfg) {
 
     $lastResponse = $response;
     $lastHttpCode = $httpCode;
+    $allErrors[] = ['model' => $tryModel, 'status' => $httpCode, 'response' => json_decode($response) ?? $response];
 
     if ($httpCode === 200 && $response) {
         $data = json_decode($response, true);
         $successText = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
         if ($successText) break; // Found a working model!
     }
-    
-    // If we hit 429, don't immediately retry another model too quickly, but let's try the next one anyway
-    // as some projects have independent quotas per model.
 }
 
 if (!$successText) {
@@ -214,7 +214,7 @@ if (!$successText) {
     echo json_encode([
         'error'   => 'AI service temporarily unavailable', 
         'status'  => $lastHttpCode, 
-        'details' => $lastResponse,
+        'details' => $allErrors,
         'tried'   => $MODELS_TO_TRY
     ]);
     exit;

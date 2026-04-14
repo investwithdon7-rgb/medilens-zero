@@ -73,11 +73,14 @@ function check_rate_limit(string $ip, string $dir, int $limit, int $window): boo
 }
 
 $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+/*
 if (!check_rate_limit($ip, $RATE_DIR, $RATE_LIMIT, $RATE_WINDOW)) {
     http_response_code(429);
     echo json_encode(['error' => 'Rate limit exceeded. Please wait before trying again.']);
     exit;
 }
+*/
+
 
 // ── Parse body ─────────────────────────────────────────────────────────────────
 $raw  = file_get_contents('php://input');
@@ -165,13 +168,12 @@ $prompt = build_prompt($task, $payload);
 
 // ── Call Gemini with Fallback ──────────────────────────────────────────────────
 $MODELS_TO_TRY = [
-    ['m' => 'gemini-1.5-flash',        'v' => 'v1beta'],
     ['m' => 'gemini-1.5-flash-latest', 'v' => 'v1beta'],
-    ['m' => 'gemini-2.0-flash',        'v' => 'v1beta'],
-    ['m' => 'gemini-1.5-flash-8b',     'v' => 'v1beta'],
-    ['m' => 'gemini-1.5-pro',          'v' => 'v1beta'],
-    ['m' => 'gemini-1.0-pro',          'v' => 'v1beta'],
+    ['m' => 'gemini-1.5-flash',        'v' => 'v1beta'],
+    ['m' => 'gemini-1.5-flash',        'v' => 'v1'],
+    ['m' => 'gemini-2.0-flash-exp',    'v' => 'v1beta'],
     ['m' => 'gemini-pro',              'v' => 'v1'],
+    ['m' => 'gemini-1.0-pro',          'v' => 'v1beta'],
 ];
 
 $lastResponse = null;

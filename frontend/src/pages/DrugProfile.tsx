@@ -210,13 +210,13 @@ export default function DrugProfile() {
         </div>
 
         {/* Global Pricing */}
-        {prices.length > 0 && (
-          <div className="card card-lg mb-4" style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-              <DollarSign size={18} style={{ color: 'var(--amber-400)' }} />
-              <h3>Global Pricing Insights</h3>
-            </div>
-            
+        <div className="card card-lg mb-4" style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            <DollarSign size={18} style={{ color: 'var(--amber-400)' }} />
+            <h3>Global Pricing Insights</h3>
+          </div>
+          
+          {prices.length > 0 ? (
             <div className="grid-2">
               <div>
                 <p className="text-secondary text-sm mb-4">
@@ -243,8 +243,19 @@ export default function DrugProfile() {
                 </p>
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center p-8 border rounded" style={{ borderColor: 'var(--border)', background: 'var(--bg-glass)', borderStyle: 'dashed' }}>
+              <div className="text-muted mb-2">
+                <DollarSign size={24} style={{ opacity: 0.3, margin: '0 auto' }} />
+              </div>
+              <h4 className="text-secondary">No global reference data found</h4>
+              <p className="text-xs text-muted mt-1">
+                Our intelligence pipeline is still indexing pricing for this specific molecule. 
+                Data for essential generics is prioritized.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Approval timeline */}
         <div className="card card-lg">

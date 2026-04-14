@@ -53,8 +53,16 @@ def ingest_gprm_sample():
     sample_data = [
         PriceEntry("DOLUTEGRAVIR", "Sri Lanka", 4.50, "USD", "30 tablets", "WHO GPRM", "2024-01-01"),
         PriceEntry("DOLUTEGRAVIR", "Malaysia", 12.00, "USD", "30 tablets", "WHO GPRM", "2024-01-01"),
+        PriceEntry("DOLUTEGRAVIR", "USA", 125.50, "USD", "30 tablets", "GSK List", "2024-01-01"),
         PriceEntry("TRASTUZUMAB", "India", 150.00, "USD", "440mg vial", "MSF Report", "2023-11-01"),
         PriceEntry("TRASTUZUMAB", "USA", 3500.00, "USD", "440mg vial", "Market Average", "2023-11-01"),
+        PriceEntry("AZELASTINE HYDROCHLORIDE", "Germany", 12.40, "EUR", "10ml spray", "BfArM", "2024-02-01"),
+        PriceEntry("AZELASTINE HYDROCHLORIDE", "USA", 45.00, "USD", "10ml spray", "GoodRx", "2024-02-01"),
+        PriceEntry("DIAZOXIDE CHOLINE", "UK", 1250.00, "GBP", "100 tablets", "NHS Drug Tariff", "2024-01-01"),
+        PriceEntry("DIAZOXIDE CHOLINE", "USA", 4200.00, "USD", "100 tablets", "Medicaid", "2024-01-01"),
+        PriceEntry("ASPIRIN", "Global Median", 0.02, "USD", "1 tablet", "WHO EML Price", "2024-01-01"),
+        PriceEntry("DAPAGLIFLOZIN", "Germany", 45.20, "EUR", "28 tablets", "Lauer-Taxe", "2024-03-01"),
+        PriceEntry("DAPAGLIFLOZIN", "United Kingdom", 36.59, "GBP", "28 tablets", "NHS Tariff", "2024-03-01"),
     ]
     
     ingestor = PricingIngestor()

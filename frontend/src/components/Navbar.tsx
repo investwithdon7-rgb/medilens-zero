@@ -59,6 +59,11 @@ export default function Navbar() {
             placeholder="Search any drug, brand name, or condition..."
             value={query}
             onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && results.length > 0) {
+                handleSelect(results[0].document?.inn ?? results[0].id);
+              }
+            }}
             aria-label="Search drugs"
           />
           {results.length > 0 && (

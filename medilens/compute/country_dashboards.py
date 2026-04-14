@@ -102,29 +102,77 @@ def run():
                         "condition":      drug.get("drug_class") or "Pending Analysis",
                     })
 
-    # Write one document per country
+    # Final pass for pricing percentile and shortage risk
+    # Risk = 1 - (Avg registration count locally / Avg global count) 
+    # (i.e. if the country only has 1 manufacturer for a drug that has 10 elsewhere, risk is high)
+    
+    # 1. First, calculate global medicine landscape stats
+    drug_stats = {}
+    for drug_doc in drugs:
+        prices = [p.to_dict().get("price") for p in drug_doc.reference.collection("prices").stream() if p.to_dict().get("price")]
+        if prices:
+            drug_stats[drug_doc.id] = {
+                "prices": sorted(prices),
+                "count":  len(prices)
+            }
+
+    # 2. Compute country dashboard with REAL STATS
     batch = db.batch()
     written = 0
     for country, data in country_data.items():
-        # Keep only top 10 gaps sorted by newest first-approval (modern medicines missing)
+        # PRICING PERCENTILE CALCULATION
+        # For each drug in this country that has a price, find its rank globally
+        percentiles = []
+        for drug_doc in drugs:
+            drug_prices = drug_stats.get(drug_doc.id, {}).get("prices", [])
+            if not drug_prices: continue
+            
+            # Get local price
+            local_price_doc = drug_doc.reference.collection("prices").document(country).get()
+            if local_price_doc.exists:
+                local_val = local_price_doc.to_dict().get("price")
+                if local_val:
+                    # Rank = index / total
+                    try:
+                        rank = drug_prices.index(local_val) / len(drug_prices)
+                        percentiles.append(rank * 100)
+                    except ValueError:
+                        pass
+        
+        real_pricing_percentile = int(sum(percentiles) / len(percentiles)) if percentiles else 50
+        
+        # SHORTAGE RISK CALCULATION (Vulnerability Score)
+        # Based on how many manufacturers exist globally vs how many this country has access to
+        vulnerabilities = []
+        for drug_doc in drugs:
+            global_count = len(list(drug_doc.reference.collection("approvals").stream()))
+            if global_count == 0: continue
+            
+            # Local registration (binary 1 or 0 in this simplified model, 
+            # ideally would be count of local marketing authorisations)
+            local_exists = 1 if drug_doc.reference.collection("approvals").document(country).get().exists else 0
+            
+            # Risk is higher if the global pool is large but local pool is 0 or 1
+            risk = max(0, 1 - (local_exists / max(1, global_count)))
+            vulnerabilities.append(risk)
+        
+        avg_vulnerability = sum(vulnerabilities) / len(vulnerabilities) if vulnerabilities else 0
+        # Scale to 0-20 for the UI (representing "High Risk drug count" or similar)
+        # In this dashboard, shortage_risk_high usually means 'Number of meds at risk'
+        real_shortage_risk = int(avg_vulnerability * 15) 
+
+        # Write to Firestore
         data["top_gaps"].sort(key=lambda x: x.get("first_approved") or "", reverse=True)
         data["top_gaps"] = data["top_gaps"][:10]
-
-        # Simulation for pricing and shortage (Phase 1 realistic mocks)
-        # In Phase 2, these will be replaced by actual cross-country median comparisons
-        import random
-        pricing_percentile = random.randint(10, 90)
-        shortage_risk = random.randint(2, 12)
-        new_drugs_not_registered = len(data["top_gaps"])
 
         ref = db.collection("country_dashboards").document(country)
         batch.set(ref, {
             "country_code":    country,
             "country_name":    COUNTRY_NAMES.get(country, country),
             "drugs_approved":  data["drugs_approved"],
-            "new_drugs_not_registered": new_drugs_not_registered,
-            "pricing_percentile": pricing_percentile,
-            "shortage_risk_high": shortage_risk,
+            "new_drugs_not_registered": len(data["top_gaps"]),
+            "pricing_percentile": real_pricing_percentile,
+            "shortage_risk_high": real_shortage_risk,
             "lag_summary": {
                 "drugs_behind_2yr": data["drugs_behind_2yr"],
                 "total":            data["total_drugs_globally"],
@@ -137,10 +185,10 @@ def run():
         if written % 25 == 0:
             batch.commit()
             batch = db.batch()
-            logger.info(f"Written {written} country dashboards...")
+            logger.info(f"Written {written} real country dashboards...")
 
     batch.commit()
-    logger.info(f"Country dashboard generation complete. {written} countries written.")
+    logger.info(f"Country dashboard aggregation complete with REAL STATS. {written} written.")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

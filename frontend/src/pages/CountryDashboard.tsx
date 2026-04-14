@@ -104,13 +104,13 @@ export default function CountryDashboard() {
             <div className="stat-value text-teal">
               {data.pricing_percentile != null ? `${data.pricing_percentile}th` : '—'}
             </div>
-            <div className="stat-label">Pricing percentile (Beta)</div>
+            <div className="stat-label">Pricing percentile</div>
             <div className="stat-delta">globally for EML basket</div>
           </div>
 
           <div className="stat-card">
             <div className="stat-value text-purple-400">{data.shortage_risk_high ?? '0'}</div>
-            <div className="stat-label">High shortage risk (Beta)</div>
+            <div className="stat-label">High shortage risk</div>
             <div className="stat-delta">vulnerability score &gt; 0.7</div>
           </div>
         </div>

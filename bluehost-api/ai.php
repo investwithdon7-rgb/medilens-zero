@@ -13,6 +13,9 @@ header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json; charset=utf-8');
 
+ini_set('display_errors', 0); // Keep JSON clean, but log errors internally if needed
+error_reporting(E_ALL);
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -28,6 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // These are replaced during GitHub Action deployment or read from environment
 $GEMINI_API_KEY = getenv('GEMINI_API_KEY') ?: 'YOUR_GEMINI_KEY_HERE';
 $GROQ_API_KEY   = getenv('GROQ_API_KEY')   ?: 'YOUR_GROQ_KEY_HERE';
+
+$GLOBALS['AI_ERRORS'] = [];
 
 $ALLOWED_TASKS = [
     'country_narrative',
@@ -133,6 +138,7 @@ function call_gemini($prompt, $apiKey) {
         ]);
         $res = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
         curl_close($ch);
 
         if ($code === 200) {
@@ -140,6 +146,8 @@ function call_gemini($prompt, $apiKey) {
             $text = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
             if ($text) return $text;
         }
+        
+        $GLOBALS['AI_ERRORS'][] = "Gemini Model {$cfg['m']} failed: Code $code, Error: $err";
     }
     return null;
 }
@@ -168,12 +176,15 @@ function call_groq($prompt, $apiKey) {
     ]);
     $res = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
     curl_close($ch);
 
     if ($code === 200) {
         $json = json_decode($res, true);
         return $json['choices'][0]['message']['content'] ?? null;
     }
+
+    $GLOBALS['AI_ERRORS'][] = "Groq failed: Code $code, Error: $err";
     return null;
 }
 
@@ -189,8 +200,15 @@ if (!$result) {
 
 if (!$result) {
     http_response_code(502);
-    echo json_encode(['error' => 'All AI providers exhausted. Please check API keys.']);
+    echo json_encode([
+        'error' => 'All AI providers exhausted. Please check API keys.',
+        'details' => $GLOBALS['AI_ERRORS'] ?? []
+    ]);
     exit;
 }
 
-echo json_encode(['result' => $result, 'provider' => $source]);
+echo json_encode([
+    'result' => $result, 
+    'provider' => $source,
+    'debug' => $GLOBALS['AI_ERRORS'] ?? []
+]);

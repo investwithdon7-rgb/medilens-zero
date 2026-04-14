@@ -36,6 +36,16 @@ $GLOBALS['AI_ERRORS'] = [];
 $GLOBALS['AI_ERRORS'][] = "Debug: Gemini key length ".strlen($GEMINI_API_KEY)." (Start: ".substr($GEMINI_API_KEY, 0, 4).")";
 $GLOBALS['AI_ERRORS'][] = "Debug: Groq key length ".strlen($GROQ_API_KEY)." (Start: ".substr($GROQ_API_KEY, 0, 4).")";
 
+// Connectivity Test
+$test_ch = curl_init("https://www.google.com");
+curl_setopt($test_ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($test_ch, CURLOPT_TIMEOUT, 5);
+curl_exec($test_ch);
+$test_code = curl_getinfo($test_ch, CURLINFO_HTTP_CODE);
+$test_err = curl_error($test_ch);
+curl_close($test_ch);
+$GLOBALS['AI_ERRORS'][] = "Connectivity Test (Google): Code $test_code, Error: $test_err";
+
 $ALLOWED_TASKS = [
     'country_narrative',
     'equivalence',

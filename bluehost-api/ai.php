@@ -33,6 +33,8 @@ $GEMINI_API_KEY = getenv('GEMINI_API_KEY') ?: 'YOUR_GEMINI_KEY_HERE';
 $GROQ_API_KEY   = getenv('GROQ_API_KEY')   ?: 'YOUR_GROQ_KEY_HERE';
 
 $GLOBALS['AI_ERRORS'] = [];
+$GLOBALS['AI_ERRORS'][] = "Debug: Gemini key length ".strlen($GEMINI_API_KEY)." (Start: ".substr($GEMINI_API_KEY, 0, 4).")";
+$GLOBALS['AI_ERRORS'][] = "Debug: Groq key length ".strlen($GROQ_API_KEY)." (Start: ".substr($GROQ_API_KEY, 0, 4).")";
 
 $ALLOWED_TASKS = [
     'country_narrative',

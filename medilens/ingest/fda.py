@@ -55,7 +55,7 @@ def normalise_record(record: dict) -> dict | None:
     if not ingredients:
         return None
 
-    inn_raw = ingredients[0].get("name", "").strip().lower()
+    inn_raw = ingredients[0].get("name", "").strip().lower().replace("/", "_")
     if not inn_raw:
         return None
 

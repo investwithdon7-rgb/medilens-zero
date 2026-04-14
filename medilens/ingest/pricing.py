@@ -26,8 +26,8 @@ class PricingIngestor:
         """Uploads price data to Firestore."""
         for entry in entries:
             # We store pricing under drugs/{inn}/prices/{country_id}
-            # Normalize INN to match main drug collection (lowercase, original spaces)
-            inn_id = entry.inn.lower().strip()
+            # Normalize INN to match main drug collection (lowercase/underscore for path)
+            inn_id = entry.inn.lower().replace("/", "_").strip()
             
             # Upsert pricing data
             

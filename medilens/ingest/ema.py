@@ -59,7 +59,7 @@ def run(max_records: int = 2000):
             break
 
         for rec in records:
-            mol_name = (rec.get("molecule_pref_name") or "").strip().lower()
+            mol_name = (rec.get("molecule_pref_name") or "").strip().lower().replace("/", "_")
             if not mol_name:
                 continue
 

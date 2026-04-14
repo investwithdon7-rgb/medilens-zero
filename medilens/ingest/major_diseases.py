@@ -84,7 +84,7 @@ def seed_major_portfolio():
     print(f"Seeding {len(CORE_PORTFOLIO)} molecules for 20 major disease areas...")
     
     for drug in CORE_PORTFOLIO:
-        doc_id = drug['inn'].upper().replace("/", "_")
+        doc_id = drug['inn'].lower().replace("/", "_")
         doc_ref = db.collection('drugs').document(doc_id)
         
         # Merge to keep existing AI enrichment if any

@@ -223,11 +223,19 @@ foreach ($MODELS_TO_TRY as $cfg) {
 }
 
 if (!$successText) {
+    // Debug: List available models
+    $listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key={$GEMINI_API_KEY}";
+    $lch = curl_init($listUrl);
+    curl_setopt($lch, CURLOPT_RETURNTRANSFER, true);
+    $modelsJson = curl_exec($lch);
+    curl_close($lch);
+
     http_response_code(502);
     echo json_encode([
         'error'   => 'AI service temporarily unavailable', 
         'status'  => $lastHttpCode, 
         'details' => $allErrors,
+        'available_models' => json_decode($modelsJson) ?? $modelsJson,
         'tried'   => $MODELS_TO_TRY
     ]);
     exit;

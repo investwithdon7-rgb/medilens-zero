@@ -1,16 +1,9 @@
 <?php
 /**
- * MediLens AI Proxy
+ * MediLens Multi-Mode AI Proxy
  * Location: /public_html/medilens/api/ai.php
  * 
- * Calls Gemini API server-side on behalf of the frontend.
- * Prevents direct exposure of the Gemini API key.
- * 
- * Security:
- *   - Whitelist of allowed tasks
- *   - Rate limiting: 10 requests per IP per hour (file-based)
- *   - Input size limits
- *   - CORS restricted to tekdruid.com
+ * Redundancy: Tries Gemini (multiple models) -> Fallback to Groq.
  */
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
@@ -31,8 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// ── Config ────────────────────────────────────────────────────────────────────
-$GEMINI_API_KEY  = getenv('GEMINI_API_KEY') ?: 'YOUR_GEMINI_KEY_HERE';
+// ── Credentials ───────────────────────────────────────────────────────────────
+// These are replaced during GitHub Action deployment or read from environment
+$GEMINI_API_KEY = getenv('GEMINI_API_KEY') ?: 'YOUR_GEMINI_KEY_HERE';
+$GROQ_API_KEY   = getenv('GROQ_API_KEY')   ?: 'YOUR_GROQ_KEY_HERE';
 
 $ALLOWED_TASKS = [
     'country_narrative',
@@ -43,48 +38,9 @@ $ALLOWED_TASKS = [
     'drug_country_analysis',
 ];
 
-// Rate limit: 10 requests per IP per hour
-$RATE_LIMIT    = 10;
-$RATE_WINDOW   = 3600; // seconds
-$RATE_DIR      = sys_get_temp_dir() . '/medilens_rl/';
-
-// ── Rate limiting ─────────────────────────────────────────────────────────────
-function check_rate_limit(string $ip, string $dir, int $limit, int $window): bool {
-    if (!is_dir($dir)) mkdir($dir, 0700, true);
-    $file = $dir . md5($ip) . '.json';
-    $now  = time();
-
-    $data = ['hits' => [], 'count' => 0];
-    if (file_exists($file)) {
-        $data = json_decode(file_get_contents($file), true) ?? $data;
-    }
-
-    // Remove hits outside the window
-    $data['hits'] = array_filter($data['hits'], fn($t) => ($now - $t) < $window);
-    $data['hits'] = array_values($data['hits']);
-
-    if (count($data['hits']) >= $limit) {
-        return false; // Rate limit exceeded
-    }
-
-    $data['hits'][] = $now;
-    file_put_contents($file, json_encode($data), LOCK_EX);
-    return true;
-}
-
-$ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-/*
-if (!check_rate_limit($ip, $RATE_DIR, $RATE_LIMIT, $RATE_WINDOW)) {
-    http_response_code(429);
-    echo json_encode(['error' => 'Rate limit exceeded. Please wait before trying again.']);
-    exit;
-}
-*/
-
-
 // ── Parse body ─────────────────────────────────────────────────────────────────
 $raw  = file_get_contents('php://input');
-if (strlen($raw) > 8192) {
+if (strlen($raw) > 16384) {
     http_response_code(413);
     echo json_encode(['error' => 'Request too large']);
     exit;
@@ -109,136 +65,132 @@ if (!in_array($task, $ALLOWED_TASKS, true)) {
 // ── Build prompt ──────────────────────────────────────────────────────────────
 function build_prompt(string $task, array $payload): string {
     return match ($task) {
-
         'country_narrative' => sprintf(
-            "You are a pharmaceutical policy analyst. Write a 2-paragraph summary for the country %s, covering: " .
-            "(1) the state of drug access (how many drugs are behind vs. global first approvals, how severe lag is), " .
-            "(2) pricing situation compared to global averages. " .
-            "Be factual, accessible, and empathetic. Data: %s",
-            $payload['country_name'] ?? 'Unknown',
+            "You are a pharmaceutical policy analyst. Write a 2-paragraph summary for %s, covering: " .
+            "(1) drug access state & registration lags, (2) pricing compared to global averages. " .
+            "Be factual and professional. Data: %s",
+            $payload['country_name'] ?? 'the region',
             json_encode($payload['data'] ?? [])
         ),
-
         'equivalence' => sprintf(
             "You are a clinical pharmacist. A patient in %s cannot access %s. " .
-            "List up to 3 therapeutic alternatives available there, with a note on equivalent efficacy. " .
-            "Be concise and clinically accurate.",
+            "List 3 therapeutic alternatives available there. Be concise.",
             $payload['country'] ?? 'their country',
             $payload['drug'] ?? 'this drug'
         ),
-
         'policy_brief' => sprintf(
-            "Write a structured policy brief (max 400 words) calling for accelerated regulatory approval of %s in %s. " .
-            "Include: Background, The Access Gap, Recommendation, Supporting Evidence. " .
-            "Data context: %s",
-            $payload['drug'] ?? 'this drug',
-            $payload['country'] ?? 'this country',
-            json_encode($payload['data'] ?? [])
+            "Write a 300-word policy brief for %s in %s. Focus on the access gap and clinical necessity. " .
+            "Include 'Recommendation' and 'Evidence' sections.",
+            $payload['drug'] ?? 'this medicine',
+            $payload['country'] ?? 'this market'
         ),
-
         'appeal_letter' => sprintf(
-            "Write a professional insurance appeal letter requesting coverage for %s. " .
-            "Patient context: %s. " .
-            "Tone: firm but respectful. Include a clinical necessity argument.",
+            "Write a professional insurance appeal letter for %s. " .
+            "Patient context: %s. Use a firm, clinical tone.",
             $payload['drug'] ?? 'this drug',
             $payload['patient_info'] ?? 'standard patient case'
         ),
-
         'drug_country_analysis' => sprintf(
-            "You are a pharmaceutical policy and market analyst. Provide a professional, engaging, and in-depth analysis of the access landscape for the drug %s in %s. " .
-            "Please highlight: (1) The potential reasons for the access gap (e.g., patent barriers, regulatory delays, manufacturer priorities). " .
-            "(2) The clinical impact of patients not having access to this specific drug in this region. " .
-            "(3) Any accessible therapeutic equivalents or stopgap solutions currently available. " .
-            "Be factual and structure the analysis in short, readable sections.",
+            "Analyze the access landscape for %s in %s. Discuss registration delays and clinical impact. " .
+            "Break into short readable sections.",
             $payload['drug'] ?? 'this drug',
             $payload['country'] ?? 'this country'
         ),
-
         'drug_summary' => sprintf(
-            "Write a 2-sentence plain-language summary of %s for a general patient audience. " .
-            "Cover: therapeutic class and primary use. Do not include dosing or side effects.",
+            "Explain what %s is (therapeutic class and primary use) for a general audience. Max 2 sentences.",
             $payload['inn'] ?? 'this drug'
         ),
-
-        default => "Please provide a helpful general pharmaceutical information response."
+        default => "Provide pharmaceutical intelligence on the requested topic."
     };
 }
 
 $prompt = build_prompt($task, $payload);
 
-// ── Call Gemini with Fallback ──────────────────────────────────────────────────
-$MODELS_TO_TRY = [
-    ['m' => 'gemini-1.5-flash-latest', 'v' => 'v1beta'],
-    ['m' => 'gemini-1.5-flash',        'v' => 'v1beta'],
-    ['m' => 'gemini-1.5-flash',        'v' => 'v1'],
-    ['m' => 'gemini-2.0-flash-exp',    'v' => 'v1beta'],
-    ['m' => 'gemini-pro',              'v' => 'v1'],
-    ['m' => 'gemini-1.0-pro',          'v' => 'v1beta'],
-];
+// ── Providers ────────────────────────────────────────────────────────────────
+function call_gemini($prompt, $apiKey) {
+    if (!$apiKey || $apiKey === 'YOUR_GEMINI_KEY_HERE') return null;
 
-$lastResponse = null;
-$lastHttpCode = 0;
-$successText  = null;
-$allErrors = [];
-
-foreach ($MODELS_TO_TRY as $cfg) {
-    $tryModel = $cfg['m'];
-    $apiVer   = $cfg['v'];
-    $endpoint = "https://generativelanguage.googleapis.com/{$apiVer}/models/{$tryModel}:generateContent?key={$GEMINI_API_KEY}";
-    
-    $geminiBody = json_encode([
-        'contents'         => [['parts' => [['text' => $prompt]]]],
-        'generationConfig' => ['maxOutputTokens' => 800, 'temperature' => 0.4],
-    ]);
-
-    $ch = curl_init($endpoint);
-    curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => $geminiBody,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 20,
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-    ]);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    // Masked key for debugging (e.g. AIza...4chars)
-    $maskedKey = substr($GEMINI_API_KEY, 0, 4) . '...' . substr($GEMINI_API_KEY, -4);
-    $keyLen = strlen($GEMINI_API_KEY);
-
-    $allErrors[] = [
-        'model' => $tryModel, 
-        'status' => $httpCode, 
-        'key_info' => "$maskedKey ($keyLen)",
-        'response' => json_decode($response) ?? $response
+    $models = [
+        ['m' => 'gemini-1.5-flash-latest', 'v' => 'v1beta'],
+        ['m' => 'gemini-1.5-pro',          'v' => 'v1beta'],
+        ['m' => 'gemini-pro',              'v' => 'v1'],
     ];
 
-    if ($httpCode === 200 && $response) {
-        $data = json_decode($response, true);
-        $successText = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        if ($successText) break; // Found a working model!
+    foreach ($models as $cfg) {
+        $url = "https://generativelanguage.googleapis.com/{$cfg['v']}/models/{$cfg['m']}:generateContent?key={$apiKey}";
+        $data = json_encode([
+            'contents'         => [['parts' => [['text' => $prompt]]]],
+            'generationConfig' => ['maxOutputTokens' => 1000, 'temperature' => 0.4]
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $data,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT        => 15
+        ]);
+        $res = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($code === 200) {
+            $json = json_decode($res, true);
+            $text = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            if ($text) return $text;
+        }
     }
+    return null;
 }
 
-if (!$successText) {
-    // Debug: List available models
-    $listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key={$GEMINI_API_KEY}";
-    $lch = curl_init($listUrl);
-    curl_setopt($lch, CURLOPT_RETURNTRANSFER, true);
-    $modelsJson = curl_exec($lch);
-    curl_close($lch);
+function call_groq($prompt, $apiKey) {
+    if (!$apiKey || $apiKey === 'YOUR_GROQ_KEY_HERE') return null;
 
-    http_response_code(502);
-    echo json_encode([
-        'error'   => 'AI service temporarily unavailable', 
-        'status'  => $lastHttpCode, 
-        'details' => $allErrors,
-        'available_models' => json_decode($modelsJson) ?? $modelsJson,
-        'tried'   => $MODELS_TO_TRY
+    $url = "https://api.groq.com/openai/v1/chat/completions";
+    $data = json_encode([
+        'model' => 'llama3-70b-8192',
+        'messages' => [['role' => 'user', 'content' => $prompt]],
+        'temperature' => 0.4,
+        'max_tokens' => 1000
     ]);
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $data,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => [
+            'Content-Type: application/json',
+            "Authorization: Bearer $apiKey"
+        ],
+        CURLOPT_TIMEOUT        => 15
+    ]);
+    $res = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($code === 200) {
+        $json = json_decode($res, true);
+        return $json['choices'][0]['message']['content'] ?? null;
+    }
+    return null;
+}
+
+// ── Execution Loop ───────────────────────────────────────────────────────────
+$result = call_gemini($prompt, $GEMINI_API_KEY);
+
+if (!$result) {
+    $result = call_groq($prompt, $GROQ_API_KEY);
+    $source = 'Groq';
+} else {
+    $source = 'Gemini';
+}
+
+if (!$result) {
+    http_response_code(502);
+    echo json_encode(['error' => 'All AI providers exhausted. Please check API keys.']);
     exit;
 }
 
-echo json_encode(['result' => $successText]);
+echo json_encode(['result' => $result, 'provider' => $source]);

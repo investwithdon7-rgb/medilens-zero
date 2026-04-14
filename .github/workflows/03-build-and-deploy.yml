@@ -60,11 +60,13 @@ jobs:
       - name: Package PHP AI Proxy
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY:   ${{ secrets.GROQ_API_KEY }}
         run: |
           mkdir -p frontend/dist/api
           cp bluehost-api/* frontend/dist/api/
-          # Use @ as delimiter which is less likely to be in a key
+          # Replace keys in PHP files
           sed -i "s@YOUR_GEMINI_KEY_HERE@${GEMINI_API_KEY}@g" frontend/dist/api/*.php
+          sed -i "s@YOUR_GROQ_KEY_HERE@${GROQ_API_KEY}@g" frontend/dist/api/*.php
 
       - name: Deploy to Bluehost via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

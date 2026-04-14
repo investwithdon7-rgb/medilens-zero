@@ -38,23 +38,27 @@ $payload = $body['payload'];
 $drugName = $payload['drug'] ?? $payload['inn'] ?? 'this drug';
 $country  = $payload['country'] ?? 'your region';
 $gapData  = $payload['gap_data'] ?? null;
+$currentDate = "April 2026";
 
-$prompt = "As a global medicine intelligence expert, provide a high-level Strategic Access Analysis for $drugName in $country.\n\n";
+$prompt = "As a global medicine intelligence expert, provide a Strategic Access Analysis for $drugName in $country.\n";
+$prompt .= "TODAY'S DATE: $currentDate\n\n";
 
+$prompt .= "CONTEXT FROM OUR DATABASE:\n";
 if ($gapData) {
     $firstDate = $gapData['first_approved'] ?? 'Unknown';
     $authority = $gapData['authority'] ?? 'Global regulator';
-    $prompt .= "CONTEXT:\n";
-    $prompt .= "- Global First Approval: $firstDate ($authority)\n";
-    $prompt .= "- Current Status in $country: NOT REGISTERED (Access Gap)\n\n";
+    $prompt .= "- Reported Global First Approval: $firstDate ($authority)\n";
+    $prompt .= "- Reported Current Status in $country: NOT REGISTERED (Access Gap)\n";
+} else {
+    $prompt .= "- No specific gap data found in our registry.\n";
 }
 
-$prompt .= "STRUCTURE YOUR RESPONSE AS FOLLOWS (be precise, data-driven, and professional):\n";
-$prompt .= "1. DRUG PROFILE: 1 sentence on therapeutic class and use.\n";
-$prompt .= "2. REGISTRATION LAG: Analyze the clinical delay since global first approval. Be specific about the impact of the wait.\n";
-$prompt .= "3. ECONOMIC BARRIER: Discuss potential pricing disparities or affordability challenges for this drug class in $country.\n";
-$prompt .= "4. ADVOCACY VIEW: One actionable recommendation for patient access.\n\n";
-$prompt .= "Keep the total length under 180 words. Focus on analysis, not just descriptions.";
+$prompt .= "\nIMPORTANT INSTRUCTIONS:\n";
+$prompt .= "1. VERIFY FACTS: Cross-reference the 'Reported' data with your internal knowledge. If our database shows a 2025 date for a drug you know was approved decades ago (like Azelastine or Aspirin), state the historical reality while acknowledging the reported data point may refer to a new formulation or registry update.\n";
+$prompt .= "2. CALCULATE LAG: Based on THE ACTUAL global first approval date, calculate the real access lag for $country.\n";
+$prompt .= "3. STRUCTURE: Use these 4 sections: DRUG PROFILE, REGISTRATION LAG, ECONOMIC BARRIER, ADVOCACY VIEW.\n";
+$prompt .= "4. CONSISTENCY: Maintain the same tone and depth if re-queried.\n\n";
+$prompt .= "Keep the total length under 200 words. Focus on accuracy over raw data repetition.";
 
 $final_result = null;
 $source = null;

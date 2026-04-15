@@ -111,16 +111,33 @@ function AccessGapBanner({ approvals }: { approvals: Approval[] }) {
   );
 }
 
-/** Lag Bar Chart — replaces the plain text timeline */
+/** Lag Bar Chart — shows countries with real approval dates; summarises the rest */
 function LagBarChart({ approvals }: { approvals: Approval[] }) {
+  const [showPending, setShowPending] = React.useState(false);
+
+  // Split into confirmed (have a real date) vs pending (in DB but no date yet)
+  const confirmed = approvals.filter(a => a.approval_date);
+  const pending   = approvals.filter(a => !a.approval_date);
+
   const maxLag = Math.max(
-    1825, // 5-year baseline
-    ...approvals.filter(a => a.lag_days != null).map(a => a.lag_days as number),
+    365, // 1-year baseline minimum
+    ...confirmed.filter(a => a.lag_days != null).map(a => a.lag_days as number),
   );
+
+  if (confirmed.length === 0) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <Clock size={32} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
+        <p className="text-sm">No approval dates on record yet.</p>
+        <p className="text-xs mt-2">Our pipeline is ingesting FDA, EMA EPAR, and WHO PQ data daily.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="lag-chart">
-      {approvals.map(a => {
+      {/* Confirmed approvals with real dates */}
+      {confirmed.map(a => {
         const days = a.lag_days;
         const pct  = days != null ? Math.min((days / maxLag) * 100, 100) : 0;
         const color = lagColor(days);
@@ -134,27 +151,45 @@ function LagBarChart({ approvals }: { approvals: Approval[] }) {
               <span className="text-xs text-muted">{a.authority}</span>
             </div>
             <div className="lag-chart-track">
-              {a.approval_date ? (
-                <>
-                  <div
-                    className="lag-chart-bar"
-                    style={{ width: `${Math.max(pct, 1)}%`, background: color }}
-                    title={days === 0 ? 'First global approval' : `${days} days`}
-                  />
-                  <span className="lag-chart-date text-xs text-muted">
-                    {new Date(a.approval_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
-                  </span>
-                </>
-              ) : (
-                <span className="lag-chart-none text-xs text-muted">Not registered</span>
-              )}
+              <div
+                className="lag-chart-bar"
+                style={{ width: `${Math.max(pct, 1)}%`, background: color }}
+                title={days === 0 ? 'First global approval' : `+${days} days`}
+              />
+              <span className="lag-chart-date text-xs text-muted">
+                {new Date(a.approval_date!).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+              </span>
             </div>
-            <div className="lag-chart-badge">
-              {lagBadge(days)}
-            </div>
+            <div className="lag-chart-badge">{lagBadge(days)}</div>
           </div>
         );
       })}
+
+      {/* Pending / no-data countries — collapsed by default */}
+      {pending.length > 0 && (
+        <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setShowPending(s => !s)}
+            style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}
+          >
+            {showPending ? '▲ Hide' : '▼ Show'} {pending.length} countries with no registration data
+          </button>
+          {showPending && (
+            <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+              {pending.map(a => {
+                const ref = COUNTRY_DATA[a.country];
+                return (
+                  <span key={a.country} className="badge badge-outline text-xs"
+                    style={{ color: 'var(--text-muted)' }}>
+                    {ref?.name ?? a.country}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -218,11 +253,17 @@ function AffordabilityTag({ price, currency, countryCode }: { price: number; cur
   return <span className={`badge ${cls} text-xs`}>{label}</span>;
 }
 
-/** Gap Severity Score */
+/** Gap Severity Score — only meaningful when we have ≥3 confirmed approvals */
 function GapSeverityScore({ approvals }: { approvals: Approval[] }) {
   const approved = approvals.filter(a => a.approval_date).length;
   const total    = approvals.length;
-  if (total === 0) return null;
+  if (approved < 3) return (
+    <div className="stat-card">
+      <div className="stat-value text-muted" style={{ fontSize: '1.25rem' }}>—</div>
+      <div className="stat-label">Gap Severity / 10</div>
+      <div className="stat-delta">Needs more country data</div>
+    </div>
+  );
 
   const unregistered  = total - approved;
   const avgLag        = approvals
@@ -318,8 +359,13 @@ export default function DrugProfile() {
   if (loading) return <LoadingSkeleton />;
   if (!drug)   return <NotFound inn={inn} />;
 
-  const firstApproval  = approvals[0];
-  const notRegistered  = approvals.filter(a => !a.approval_date).length;
+  const firstApproval    = approvals[0];
+  const confirmedApprovals = approvals.filter(a => a.approval_date);
+  const pendingApprovals   = approvals.filter(a => !a.approval_date);
+  // Only call something "not registered" if we have solid global coverage data.
+  // With sparse data, the absence is a data gap, not a confirmed registration gap.
+  const hasGoodCoverage  = confirmedApprovals.length >= 3;
+  const notRegistered    = hasGoodCoverage ? pendingApprovals.length : 0;
   const pricesSorted   = [...prices].sort((a, b) => {
     const usdA = toUSD(a.price, a.currency);
     const usdB = toUSD(b.price, b.currency);
@@ -357,17 +403,25 @@ export default function DrugProfile() {
         {/* Summary stats */}
         <div className="grid-4 mb-4" style={{ marginBottom: '1.5rem' }}>
           <div className="stat-card">
-            <div className="stat-value text-teal">{approvals.filter(a => a.approval_date).length}</div>
+            <div className="stat-value text-blue">{confirmedApprovals.length}</div>
             <div className="stat-label">Countries approved</div>
-            <div className="stat-delta">out of {approvals.length} tracked</div>
+            <div className="stat-delta">
+              {approvals.length > 0
+                ? `${approvals.length} countries tracked`
+                : 'No records yet'}
+            </div>
           </div>
           <div className="stat-card">
-            <div className="stat-value text-amber">{notRegistered}</div>
-            <div className="stat-label">Not yet registered</div>
+            <div className="stat-value text-amber">
+              {hasGoodCoverage ? notRegistered : '—'}
+            </div>
+            <div className="stat-label">Confirmed gaps</div>
             <div className="stat-delta">
-              {notRegistered > 0
-                ? `${Math.round((notRegistered / approvals.length) * 100)}% coverage gap`
-                : 'Full coverage'}
+              {hasGoodCoverage
+                ? notRegistered > 0
+                  ? `${Math.round((notRegistered / approvals.length) * 100)}% coverage gap`
+                  : 'Full tracked coverage'
+                : 'Insufficient data for gap analysis'}
             </div>
           </div>
           <div className="stat-card">

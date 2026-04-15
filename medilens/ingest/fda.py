@@ -45,15 +45,22 @@ def normalise_record(record: dict) -> dict | None:
 
     submissions = record.get("submissions", [])
     approval_date = None
+
+    # Collect all approved submissions with parseable dates
+    approved_dates = []
     for sub in submissions:
         if sub.get("submission_status") == "AP":
             raw_date = sub.get("submission_status_date", "")
             if raw_date:
                 try:
-                    approval_date = datetime.strptime(raw_date, "%Y%m%d").isoformat()[:10]
-                    break
+                    approved_dates.append(datetime.strptime(raw_date, "%Y%m%d"))
                 except ValueError:
                     pass
+
+    # Take the EARLIEST approval date — this is the original NDA/BLA approval,
+    # not a later supplemental (which would inflate the lag calculation).
+    if approved_dates:
+        approval_date = min(approved_dates).isoformat()[:10]
 
     brand_names = list({p.get("brand_name", "") for p in products if p.get("brand_name")})
 

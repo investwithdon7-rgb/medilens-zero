@@ -77,10 +77,20 @@ export async function getCountryDashboard(countryCode: string) {
 
 // ── New drugs feed ────────────────────────────────────────────────────────────
 
-/** Fetch recent new drug approvals. Paginated — default 10. */
-export async function getNewDrugsFeed(pageSize = 10) {
+/** Fetch drugs with first global approval in the last 24 months. */
+export async function getNewDrugsFeed(pageSize = 120) {
+  // Strict 24-month window — avoids showing old drugs as "new"
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 24);
+  const cutoffStr = cutoff.toISOString().slice(0, 10); // YYYY-MM-DD
+
   const col  = collection(db, 'new_drugs_feed');
-  const q    = query(col, orderBy('approval_date', 'desc'), limit(pageSize));
+  const q    = query(
+    col,
+    where('approval_date', '>=', cutoffStr),
+    orderBy('approval_date', 'desc'),
+    limit(pageSize),
+  );
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }

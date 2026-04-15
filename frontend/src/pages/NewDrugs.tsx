@@ -26,14 +26,23 @@ export default function NewDrugs() {
     return true;
   });
 
-  // Stats summary
-  const licOnly  = drugs.filter(d => {
+  // HIC-only: drug is registered in ≥1 tracked country AND all of them are HIC
+  // AND we have LMIC coverage data (lmic_count field present) to avoid false positives
+  // from sparse data where we simply haven't ingested LMIC records yet.
+  const licOnly = drugs.filter(d => {
     const countries: string[] = d.countries_registered ?? [];
+    if (countries.length === 0) return false;
+    // Only flag as HIC-only when we have confirmed data coverage (≥2 countries or lmic_count field present)
+    const hasCoverage = countries.length >= 2 || d.data_coverage >= 2;
+    if (!hasCoverage) return false;
     return countries.every(c => {
       const ref = COUNTRY_DATA[c];
       return ref && ref.income_class === 'HIC';
     });
   }).length;
+
+  const withLMIC = drugs.filter(d => (d.lmic_count ?? 0) > 0).length;
+  const sparseData = drugs.filter(d => (d.data_coverage ?? 0) <= 1).length;
 
   return (
     <>
@@ -58,13 +67,19 @@ export default function NewDrugs() {
             <TrendingUp size={22} />
             <div>
               <div className="access-gap-headline">
-                <strong>{drugs.length}</strong> new drugs approved globally in the last 24 months.
+                <strong>{drugs.length}</strong> drugs with first global approval in the last 24 months tracked in our database.
                 {licOnly > 0 && (
-                  <> <strong style={{ color: 'var(--amber-400)' }}>{licOnly}</strong> are registered <strong>only in high-income countries</strong> — LMIC patients cannot yet access them.</>
+                  <> Of those with multi-country data, <strong style={{ color: 'var(--amber-400)' }}>{licOnly}</strong> show <strong>registration only in high-income countries</strong> so far.</>
+                )}
+                {withLMIC > 0 && (
+                  <> <strong style={{ color: 'var(--emerald-400)' }}>{withLMIC}</strong> have confirmed LMIC registrations.</>
                 )}
               </div>
               <div className="access-gap-sub">
-                Use the filters below to explore the equity gap across income groups.
+                {sparseData > 0
+                  ? `${sparseData} drugs have only 1 tracked registration (data expanding daily via FDA + EMA + WHO PQ pipeline). `
+                  : ''}
+                Filters below show equity gaps across income groups.
               </div>
             </div>
           </div>
@@ -74,9 +89,9 @@ export default function NewDrugs() {
         {!loading && drugs.length > 0 && (
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
             {([
-              { key: 'all',      label: `All new drugs (${drugs.length})` },
-              { key: 'lmic',     label: `Reached LMIC (${drugs.length - licOnly})` },
-              { key: 'hic-only', label: `HIC-only gap (${licOnly})` },
+              { key: 'all',      label: `All tracked (${drugs.length})` },
+              { key: 'lmic',     label: `Has LMIC registration (${withLMIC})` },
+              { key: 'hic-only', label: `Confirmed HIC-only (${licOnly})` },
             ] as const).map(f => (
               <button
                 key={f.key}

@@ -49,7 +49,7 @@ def run():
         # was polluting every drug's timeline with 25 "Not registered" rows and
         # making every drug look absent from all countries.
         batch = db.batch()
-        for cid, dt in dates:
+        for dt, cid in dates:
             ref = drug_doc.reference.collection("approvals").document(cid)
             lag_days = (dt - first_dt).days
             batch.set(ref, {

@@ -532,6 +532,247 @@ code, pre { font-family: 'JetBrains Mono', monospace; }
 .mb-4         { margin-bottom: 1rem; }
 .w-full       { width: 100%; }
 
+/* ── New utility spacing ──────────────────────────────────────────────────── */
+.mb-3 { margin-bottom: 0.75rem; }
+.mb-8 { margin-bottom: 2rem; }
+.mt-3 { margin-top: 0.75rem; }
+.gap-8 { gap: 2rem; }
+.gap-12 { gap: 3rem; }
+.leading-relaxed { line-height: 1.75; }
+.tracking-widest { letter-spacing: 0.1em; }
+.uppercase { text-transform: uppercase; }
+.italic { font-style: italic; }
+.border-t { border-top: 1px solid var(--border); }
+.pt-4 { padding-top: 1rem; }
+.p-3 { padding: 0.75rem; }
+.rounded { border-radius: var(--radius-sm); }
+.align-center { align-items: center; }
+.text-blue-400 { color: var(--blue-400); }
+.text-purple-400 { color: var(--purple-400); }
+.my-4 { margin: 1rem 0; }
+.m-0 { margin: 0; }
+
+/* ── Population Without Access Banner ────────────────────────────────────── */
+.access-gap-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgba(248, 113, 113, 0.07);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.access-gap-banner svg { color: var(--red-400); flex-shrink: 0; margin-top: 2px; }
+.access-gap-headline strong { color: var(--text-primary); }
+.access-gap-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+/* ── Lag Bar Chart ────────────────────────────────────────────────────────── */
+.lag-chart { display: flex; flex-direction: column; gap: 0.5rem; }
+.lag-chart-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 100px;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.lag-chart-row:last-child { border-bottom: none; }
+.lag-chart-country {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.lag-chart-country .font-bold { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lag-chart-country .text-xs   { white-space: nowrap; opacity: 0.7; }
+.lag-chart-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.lag-chart-track {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 20px;
+  background: rgba(255,255,255,0.04);
+  border-radius: var(--radius-sm);
+  padding: 0 0.25rem;
+  overflow: hidden;
+  position: relative;
+}
+.lag-chart-bar {
+  height: 14px;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.lag-chart-date { white-space: nowrap; margin-left: 0.5rem; }
+.lag-chart-none { color: var(--text-muted); font-style: italic; padding: 0 0.25rem; }
+.lag-chart-badge { text-align: right; }
+
+@media (max-width: 640px) {
+  .lag-chart-row { grid-template-columns: 1fr; gap: 0.4rem; }
+  .lag-chart-country { flex-direction: row; }
+  .lag-chart-badge { text-align: left; }
+}
+
+/* ── Adoption Velocity Chart ─────────────────────────────────────────────── */
+.adoption-chart { display: flex; flex-direction: column; gap: 0.5rem; }
+.adoption-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 80px;
+  align-items: center;
+  gap: 0.75rem;
+}
+.adoption-year { text-align: right; }
+.adoption-track {
+  height: 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.adoption-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal-500), var(--blue-500));
+  border-radius: var(--radius-sm);
+  transition: width 0.4s ease;
+}
+.adoption-count { text-align: left; }
+
+/* ── Adoption mini bars (NewDrugs card) ───────────────────────────────────── */
+.adoption-mini-bars { display: flex; flex-direction: column; gap: 0.3rem; }
+.adoption-mini-row  { display: grid; grid-template-columns: 80px 1fr 24px; align-items: center; gap: 0.5rem; }
+.adoption-mini-track {
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.adoption-mini-bar { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+
+/* ── Price Bar Row ────────────────────────────────────────────────────────── */
+.price-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 120px 130px;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.price-row:last-child { border-bottom: none; }
+.price-country { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.price-bar-track {
+  height: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.price-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber-500), var(--teal-500));
+  border-radius: 5px;
+  transition: width 0.4s ease;
+}
+.price-value  { display: flex; flex-direction: column; align-items: flex-end; }
+.price-affordability { display: flex; justify-content: flex-end; }
+
+@media (max-width: 640px) {
+  .price-row { grid-template-columns: 80px 1fr; }
+  .price-value, .price-affordability { display: none; }
+}
+
+/* ── Financial Toxicity Alert ─────────────────────────────────────────────── */
+.financial-toxicity-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.financial-toxicity-alert svg { color: var(--amber-400); flex-shrink: 0; margin-top: 2px; }
+
+/* ── Equity Score Bar ─────────────────────────────────────────────────────── */
+.equity-bar-track {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.equity-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* ── Innovation Equity Index ─────────────────────────────────────────────── */
+.equity-index-header {
+  display: grid;
+  grid-template-columns: 160px 60px 80px 1fr 90px;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.equity-index-row {
+  display: grid;
+  grid-template-columns: 160px 60px 80px 1fr 90px;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.equity-index-row:last-child { border-bottom: none; }
+
+@media (max-width: 768px) {
+  .equity-index-header { display: none; }
+  .equity-index-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+}
+
+/* ── Country Gap Table ────────────────────────────────────────────────────── */
+.gap-table-header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 80px;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+.gap-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 80px;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+}
+.gap-table-row:hover { background: var(--bg-glass); border-radius: var(--radius-sm); }
+.gap-table-row:last-child { border-bottom: none; }
+.gap-drug-name { display: flex; align-items: center; gap: 0.5rem; }
+
+@media (max-width: 768px) {
+  .gap-table-header { display: none; }
+  .gap-table-row { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+}
+
 /* ── Advocacy Section ─────────────────────────────────────────────────────── */
 .advocacy-grid {
   display: grid;

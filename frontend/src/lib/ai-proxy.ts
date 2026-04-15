@@ -7,7 +7,19 @@ export type AiTask =
   | 'appeal_letter'
   | 'country_narrative'
   | 'equivalence'
-  | 'drug_country_analysis';
+  | 'drug_country_analysis'
+  | 'shortage_risk'
+  | 'advocacy_plan';
+
+export const AI_TASK_LABELS: Record<AiTask, string> = {
+  policy_brief:          'Policy Brief',
+  appeal_letter:         'Appeal Letter',
+  country_narrative:     'Country Briefing',
+  equivalence:           'Equivalence Analysis',
+  drug_country_analysis: 'Drug–Country Analysis',
+  shortage_risk:         'Supply Chain Risk',
+  advocacy_plan:         'Advocacy Action Plan',
+};
 
 interface AiRequest {
   task: AiTask;
@@ -19,13 +31,12 @@ const AI_PROXY_TOKEN = import.meta.env.VITE_AI_PROXY_TOKEN || '';
 export async function callAiProxy(req: AiRequest): Promise<string> {
   const res = await fetch(AI_PROXY_URL, {
     method:  'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'X-Medilens-Token': AI_PROXY_TOKEN
+    headers: {
+      'Content-Type':    'application/json',
+      'X-Medilens-Token': AI_PROXY_TOKEN,
     },
-    body:    JSON.stringify(req),
+    body: JSON.stringify(req),
   });
-
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));

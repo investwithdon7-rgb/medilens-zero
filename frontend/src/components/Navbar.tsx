@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Search, Globe, Zap, Menu, X } from 'lucide-react';
+import { Search, Globe, Activity, Menu, X } from 'lucide-react';
 import { searchDrugs } from '../lib/search';
 
 export default function Navbar() {
@@ -46,7 +46,9 @@ export default function Navbar() {
       <div className="navbar-inner">
         {/* Logo */}
         <Link to="/" className="nav-logo">
-          <Zap size={20} style={{ color: 'var(--teal-400)' }} />
+          <span className="logo-icon">
+            <Activity size={15} />
+          </span>
           Medi<span className="logo-accent">Lens</span>
         </Link>
 
@@ -86,12 +88,12 @@ export default function Navbar() {
 
         {/* Nav links */}
         <div className="nav-links">
-          <Link to="/" className="nav-link">Dashboard</Link>
-          <Link to="/new-drugs" className="nav-link">New Drugs</Link>
-          <Link to="/countries" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Globe size={18} />
+          <NavLink to="/" end>Dashboard</NavLink>
+          <NavLink to="/new-drugs">New Drugs</NavLink>
+          <NavLink to="/countries" className={({ isActive }) => isActive ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}>
+            <Globe size={14} />
             Countries
-          </Link>
+          </NavLink>
         </div>
 
         {/* Mobile menu toggle */}

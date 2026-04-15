@@ -1,16 +1,16 @@
 import { Link } from 'react-router-dom';
 import {
-  Clock, Globe, Zap, DollarSign, AlertTriangle, FileText, BarChart2, TrendingUp,
+  Clock, Globe, Activity, DollarSign, AlertTriangle, FileText, BarChart2, TrendingUp,
 } from 'lucide-react';
 
 const pillars = [
-  { icon: <Clock size={22} />,         title: 'Approval Lag Monitor',    desc: 'Visual bar chart: how many years behind is each country for any drug?',        href: '/countries', color: '#2dd4bf' },
-  { icon: <Globe size={22} />,         title: 'Therapeutic Landscape',   desc: 'What does your country use for a condition vs. the global standard?',           href: '/countries', color: '#60a5fa' },
-  { icon: <Zap size={22} />,           title: 'New Drug Radar',          desc: 'New approvals globally — see HIC vs. LMIC coverage gaps at a glance.',          href: '/new-drugs',  color: '#c084fc' },
-  { icon: <DollarSign size={22} />,    title: 'Affordability Index',     desc: 'Price expressed as days of local minimum wage — not just a number.',             href: '/countries', color: '#fbbf24' },
-  { icon: <BarChart2 size={22} />,     title: 'Country Dashboard',       desc: 'Access Equity Score, gap severity, bottleneck classification per country.',      href: '/countries', color: '#4ade80' },
-  { icon: <AlertTriangle size={22} />, title: 'Shortage Risk Radar',     desc: 'Supply chain vulnerability score for essential medicines per country.',          href: '/countries', color: '#f87171' },
-  { icon: <FileText size={22} />,      title: 'Advocacy Action Engine',  desc: 'Generate policy briefs, appeal letters, and advocacy plans using AI.',           href: '/countries', color: '#fb923c' },
+  { icon: <Clock size={20} />,         title: 'Approval Lag Monitor',    desc: 'Visual bar chart: how many years behind is each country for any drug?',        href: '/countries', color: '#3b82f6' },
+  { icon: <Globe size={20} />,         title: 'Therapeutic Landscape',   desc: 'What does your country use for a condition vs. the global standard?',           href: '/countries', color: '#6366f1' },
+  { icon: <Activity size={20} />,      title: 'New Drug Radar',          desc: 'New approvals globally — see HIC vs. LMIC coverage gaps at a glance.',          href: '/new-drugs',  color: '#a78bfa' },
+  { icon: <DollarSign size={20} />,    title: 'Affordability Index',     desc: 'Price expressed as days of local minimum wage — not just a number.',             href: '/countries', color: '#f59e0b' },
+  { icon: <BarChart2 size={20} />,     title: 'Country Dashboard',       desc: 'Access Equity Score, gap severity, bottleneck classification per country.',      href: '/countries', color: '#10b981' },
+  { icon: <AlertTriangle size={20} />, title: 'Shortage Risk Radar',     desc: 'Supply chain vulnerability score for essential medicines per country.',          href: '/countries', color: '#fb7185' },
+  { icon: <FileText size={20} />,      title: 'Advocacy Action Engine',  desc: 'Generate policy briefs, appeal letters, and advocacy plans using AI.',           href: '/countries', color: '#60a5fa' },
 ];
 
 const stats = [
@@ -30,9 +30,9 @@ const innovationGaps = [
 ];
 
 function equityColor(score: number) {
-  if (score >= 65) return 'var(--green-400)';
+  if (score >= 65) return 'var(--emerald-400)';
   if (score >= 40) return 'var(--amber-400)';
-  return 'var(--red-400)';
+  return 'var(--rose-400)';
 }
 
 function statusBadge(status: string) {
@@ -98,7 +98,7 @@ export default function Home() {
       <section className="section" style={{ background: 'var(--card-bg)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
         <div className="container">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <TrendingUp size={22} style={{ color: 'var(--teal-400)' }} />
+            <TrendingUp size={20} style={{ color: 'var(--blue-400)' }} />
             <h2>Innovation Equity Index</h2>
           </div>
           <p className="text-secondary mb-4" style={{ marginBottom: '1.5rem', maxWidth: 640 }}>

@@ -30,6 +30,16 @@ COUNTRY_NAMES = {
     "FIN": "Finland", "GRC": "Greece", "PRT": "Portugal",
 }
 
+# ── Gap quality filters ────────────────────────────────────────────────────────
+# Only flag actionable access gaps, not data-completeness holes.
+# Drugs approved before 2005 are excluded: even if absent from our DB for a country,
+# a 75-year-old drug is almost certainly available there — we just don't have the record.
+EARLIEST_GAP_YEAR = 2005
+
+# A drug must be registered in at least this many focus countries before we treat
+# its absence elsewhere as a real access gap (not just missing data).
+MIN_REGISTERED_COUNTRIES = 2
+
 def run():
     db     = get_db()
     now    = datetime.utcnow()
@@ -46,64 +56,78 @@ def run():
 
     for drug_doc in drugs:
         drug      = drug_doc.to_dict()
-        # Index approvals AND prices per country
+        # Load approvals and prices for ALL countries in one pass
         approvals = {a.id: a.to_dict() for a in drug_doc.reference.collection("approvals").stream()}
         prices    = {p.id: p.to_dict() for p in drug_doc.reference.collection("prices").stream()}
 
         first_global_date = drug.get("first_global_approval")
-        # Fallback: check approvals for earliest date
+        # Fallback: derive earliest date from any approval record we have
         if not first_global_date and approvals:
             try:
                 all_dates = [a.get("approval_date")[:10] for a in approvals.values() if a.get("approval_date")]
                 if all_dates:
                     first_global_date = min(all_dates)
-            except:
+            except Exception:
                 pass
 
         first_dt = None
         if first_global_date:
             try:
-                # Handle various formats (YYYY-MM-DD or partial)
                 clean_date = str(first_global_date)[:10].replace("/", "-")
                 first_dt = datetime.fromisoformat(clean_date)
             except (ValueError, TypeError):
                 pass
 
+        # ── Gap quality gate ───────────────────────────────────────────────────
+        # Count how many FOCUS countries already have a verified approval date.
+        # If < MIN_REGISTERED_COUNTRIES → drug is either legacy/pre-DB or rarely
+        # registered, so absence from a specific country is not actionable.
+        registered_in_focus = sum(
+            1 for c in FOCUS_COUNTRIES
+            if approvals.get(c) and approvals[c].get("approval_date")
+        )
+
+        # Is this drug eligible to appear as an access gap?
+        gap_eligible = (
+            first_dt is not None
+            and first_dt.year >= EARLIEST_GAP_YEAR       # modern drug only
+            and (now - first_dt).days > 365              # approved > 1 yr ago
+            and registered_in_focus >= MIN_REGISTERED_COUNTRIES  # provably global
+        )
+
         for country in FOCUS_COUNTRIES:
             country_data[country]["total_drugs_globally"] += 1
-            
-            # A drug is considered 'present' if it has an approval record OR a price record
+
+            # A drug is 'present' if it has an approval record OR a price record
             approval = approvals.get(country)
             price    = prices.get(country)
-            
+
             reg_date = None
             if approval and approval.get("approval_date"):
                 reg_date = approval.get("approval_date")
             elif price and price.get("last_updated"):
-                # Use price date as a proxy for presence if reg date missing
                 reg_date = price.get("last_updated")
 
             if reg_date:
                 country_data[country]["drugs_approved"] += 1
                 if first_dt:
                     try:
-                        # Normalize date if it's too long
                         country_dt = datetime.fromisoformat(reg_date[:10])
                         lag_days   = (country_dt - first_dt).days
-                        if lag_days > 730:  # >2 years
+                        if lag_days > 730:   # >2 yr behind global first
                             country_data[country]["drugs_behind_2yr"] += 1
                     except (ValueError, TypeError):
                         pass
             else:
-                # Drug not registered in this specific country — access gap
-                if first_dt and (now - first_dt).days > 365:
-                    lag_days = (now - first_dt).days
+                # Drug NOT registered in this specific country
+                if gap_eligible:
+                    lag_days = (now - first_dt).days  # type: ignore[union-attr]
                     country_data[country]["total_gaps"] += 1
                     country_data[country]["top_gaps"].append({
-                        "inn":            drug_doc.id,
-                        "first_approved":  first_global_date,
-                        "lag_days":        lag_days,
-                        "condition":       drug.get("drug_class") or "Pending Analysis",
+                        "inn":           drug_doc.id,
+                        "first_approved": first_global_date,
+                        "lag_days":       lag_days,
+                        "condition":      drug.get("drug_class") or "Pending Analysis",
                     })
 
     # Final pass for pricing percentile and shortage risk

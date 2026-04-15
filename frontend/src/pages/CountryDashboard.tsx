@@ -30,16 +30,33 @@ const BOTTLENECK_INFO: Record<BottleneckType, BottleneckInfo> = {
   unknown:              { label: 'Gap Unclassified',    badgeClass: 'badge-outline', description: 'Insufficient data to classify barrier type' },
 };
 
-/** Heuristic gap classifier — replace with AI classification when data quality improves */
-function classifyGap(gap: { first_approved?: string; condition?: string }, incomeClass: string): BottleneckType {
-  if (!gap.first_approved) return 'unknown';
-  const lagMonths = (Date.now() - new Date(gap.first_approved).getTime()) / (1000 * 60 * 60 * 24 * 30);
-  if (lagMonths < 12)  return 'recent';
+/** Heuristic gap classifier using pre-computed lag_days for accuracy */
+function classifyGap(
+  gap: { first_approved?: string; condition?: string; lag_days?: number },
+  incomeClass: string
+): BottleneckType {
+  // Prefer pre-computed lag_days; fall back to live calculation
+  const lagDays = gap.lag_days ?? (gap.first_approved
+    ? (Date.now() - new Date(gap.first_approved).getTime()) / (1000 * 60 * 60 * 24)
+    : null);
+
+  if (!lagDays) return 'unknown';
+  const lagMonths = lagDays / 30;
+
+  if (lagMonths < 14)  return 'recent';    // < ~1yr — still in filing window
+
   const cond = (gap.condition || '').toLowerCase();
-  if (cond.includes('oncolog') || cond.includes('rare'))          return 'patent';
-  if (incomeClass === 'LIC' || incomeClass === 'LMIC')            return 'affordability';
-  if (lagMonths > 60 && incomeClass === 'HIC')                    return 'manufacturer-choice';
-  if (lagMonths > 24 && (incomeClass === 'LMIC' || incomeClass === 'LIC')) return 'regulatory-capacity';
+  if (cond.includes('oncolog') || cond.includes('rare') || cond.includes('orphan')) return 'patent';
+
+  // Income-class–driven classification
+  if (incomeClass === 'LIC' || incomeClass === 'LMIC') {
+    if (lagMonths > 48) return 'regulatory-capacity';  // >4 yr — systemic lag
+    return 'affordability';                             // 1-4 yr — price/reimbursement
+  }
+  if (incomeClass === 'HIC' || incomeClass === 'UMIC') {
+    if (lagMonths > 36) return 'manufacturer-choice';  // >3 yr — deliberate skip
+    return 'regulatory-capacity';                      // 1-3 yr — review backlog
+  }
   return 'unknown';
 }
 

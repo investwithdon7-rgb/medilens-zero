@@ -25,25 +25,9 @@ def fetch_approvals(limit: int = 1000, skip: int = 0) -> list[dict]:
         resp.raise_for_status()
         return resp.json().get("results", [])
     except Exception as e:
-        logger.warning(f"FDA API failed or returned 404: {e}")
-        # Return fallback high-value drugs to ensure the platform isn't empty
-        return [
-            {
-                "products": [{"active_ingredients": [{"name": "DOLUTEGRAVIR"}], "brand_name": "TIVICAY"}],
-                "submissions": [{"submission_type": "ORIG", "submission_status": "AP", "submission_status_date": "20130812"}],
-                "application_number": "NDA204790"
-            },
-            {
-                "products": [{"active_ingredients": [{"name": "ONDANSETRON"}], "brand_name": "ZOFRAN"}],
-                "submissions": [{"submission_type": "ORIG", "submission_status": "AP", "submission_status_date": "19910104"}],
-                "application_number": "NDA020007"
-            },
-            {
-                "products": [{"active_ingredients": [{"name": "TRASTUZUMAB"}], "brand_name": "HERCEPTIN"}],
-                "submissions": [{"submission_type": "ORIG", "submission_status": "AP", "submission_status_date": "19980925"}],
-                "application_number": "BLA103792"
-            }
-        ]
+        logger.error(f"FDA API failed: {e}")
+        return []
+
 
 def normalise_record(record: dict) -> dict | None:
     """Extract INN, approval date, and metadata from a raw FDA record."""
@@ -80,8 +64,10 @@ def normalise_record(record: dict) -> dict | None:
         "brand_names":   brand_names,
         "application_number": record.get("application_number"),
         "source":        "openFDA",
+        "confidence":    "verified",
         "updated_at":    datetime.utcnow().isoformat() + "Z",
     }
+
 
 def run(max_records: int = 100):
     """Main ingestor entry point."""
@@ -123,8 +109,10 @@ def run(max_records: int = 100):
                 "approval_date":      normalised["approval_date"],
                 "application_number": normalised["application_number"],
                 "source":             normalised["source"],
+                "confidence":         normalised["confidence"],
                 "updated_at":         normalised["updated_at"],
             }, merge=True)
+
 
             count += 1
             if count % 50 == 0:

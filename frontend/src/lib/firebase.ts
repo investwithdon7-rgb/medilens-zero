@@ -39,10 +39,11 @@ export async function getDrugApproval(inn: string, countryCode: string) {
   return snap.exists() ? snap.data() : null;
 }
 
-/** Fetch all approvals for a drug (for timeline). N reads. Use sparingly. */
+/** Fetch all approvals for a drug (for timeline). Use limit to prevent unbounded reads. */
 export async function getDrugApprovals(inn: string) {
   const col  = collection(db, 'drugs', inn.toLowerCase(), 'approvals');
-  const snap = await getDocs(col);
+  const q    = query(col, limit(50));
+  const snap = await getDocs(q);
   return snap.docs.map(d => ({ country: d.id, ...d.data() }));
 }
 
@@ -52,12 +53,14 @@ export async function getDrugPricing(inn: string, countryCode: string) {
   return snap.exists() ? snap.data() : null;
 }
 
-/** Fetch all price points for a drug. */
+/** Fetch all price points for a drug. Use limit to prevent unbounded reads. */
 export async function getDrugPrices(inn: string) {
   const col  = collection(db, 'drugs', inn.toLowerCase(), 'prices');
-  const snap = await getDocs(col);
+  const q    = query(col, limit(50));
+  const snap = await getDocs(q);
   return snap.docs.map(d => ({ country: d.id, ...d.data() }));
 }
+
 
 // ── Country dashboard ─────────────────────────────────────────────────────────
 

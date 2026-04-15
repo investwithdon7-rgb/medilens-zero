@@ -4,22 +4,46 @@ import { ArrowLeft, Clock, TrendingDown, FileText, Send, X, Copy, Check, DollarS
 import { getDrug, getDrugApprovals, getDrugPrices } from '../lib/firebase';
 import { callAiProxy, type AiTask } from '../lib/ai-proxy';
 
-type Approval = {
+interface Drug {
+  inn: string;
+  brand_names: string | string[];
+  drug_class: string;
+  is_essential?: boolean;
+  atc_code?: string;
+  ai_summary?: string;
+  ai_analytics?: {
+    significance?: string;
+    access_outlook?: string;
+    alternatives?: string[];
+  };
+}
+
+interface Approval {
   country: string;
   authority: string;
   approval_date: string;
   lag_days: number | null;
-};
+}
+
+interface Price {
+  country: string;
+  id?: string;
+  price: number;
+  currency: string;
+  unit: string;
+  source: string;
+}
 
 export default function DrugProfile() {
   const { inn }           = useParams<{ inn: string }>();
-  const [drug, setDrug]   = useState<any>(null);
+  const [drug, setDrug]   = useState<Drug | null>(null);
   const [approvals, setApprovals] = useState<Approval[]>([]);
-  const [prices, setPrices]       = useState<any[]>([]);
+  const [prices, setPrices]       = useState<Price[]>([]);
   const [loading, setLoading]     = useState(true);
   const [aiModal, setAiModal]     = useState<{ title: string; content: string; task: string } | null>(null);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [copied, setCopied]       = useState(false);
+
 
   useEffect(() => {
     if (!inn) return;
@@ -298,11 +322,22 @@ export default function DrugProfile() {
 
       {/* AI Modal */}
       {aiModal && (
-        <div className="ai-modal-overlay" onClick={() => setAiModal(null)}>
-          <div className="ai-modal" onClick={e => e.stopPropagation()}>
+        <div 
+          className="ai-modal-overlay" 
+          onClick={() => setAiModal(null)}
+          onKeyDown={(e) => e.key === 'Escape' && setAiModal(null)}
+          tabIndex={-1}
+        >
+          <div 
+            className="ai-modal" 
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+          >
             <div className="ai-modal-header">
-              <h3 className="font-bold">{aiModal.title}</h3>
-              <button className="btn btn-ghost btn-sm" onClick={() => setAiModal(null)}>
+              <h3 id="modal-title" className="font-bold">{aiModal.title}</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setAiModal(null)} aria-label="Close modal">
                 <X size={16} />
               </button>
             </div>
@@ -320,6 +355,7 @@ export default function DrugProfile() {
           </div>
         </div>
       )}
+
     </>
   );
 }

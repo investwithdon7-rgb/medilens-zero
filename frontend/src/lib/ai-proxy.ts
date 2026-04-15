@@ -14,12 +14,18 @@ interface AiRequest {
   payload: Record<string, unknown>;
 }
 
+const AI_PROXY_TOKEN = import.meta.env.VITE_AI_PROXY_TOKEN || '';
+
 export async function callAiProxy(req: AiRequest): Promise<string> {
   const res = await fetch(AI_PROXY_URL, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'X-Medilens-Token': AI_PROXY_TOKEN
+    },
     body:    JSON.stringify(req),
   });
+
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));

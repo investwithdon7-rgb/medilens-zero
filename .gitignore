@@ -14,3 +14,9 @@ firebase-debug.log
 data/
 *.json.gz
 service-account.json
+
+# Secrets and local config
+secrets.php
+bluehost-api/secrets.php
+
+

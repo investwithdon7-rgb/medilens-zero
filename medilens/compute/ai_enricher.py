@@ -42,8 +42,8 @@ def enrich_drugs():
         count += 1
         inn = doc.id
         print(f"Enriching drug {count}/{MAX_PER_RUN}: {inn}...")
-        inn = doc.id
         category  = drug_data.get('drug_class', 'General Therapeutic')
+
         
         print(f"[{count}] Generating analytics for {inn}...")
         

@@ -87,8 +87,15 @@ def seed_major_portfolio():
         doc_id = drug['inn'].lower().replace("/", "_")
         doc_ref = db.collection('drugs').document(doc_id)
         
+        # Add data quality metadata
+        drug_data = {
+            **drug,
+            "source": "MediLens Core Seed",
+            "confidence": "verified"
+        }
         # Merge to keep existing AI enrichment if any
-        doc_ref.set(drug, merge=True)
+        doc_ref.set(drug_data, merge=True)
+
         print(f"  ✓ Seeded {drug['inn']}")
 
     print("Finalized inclusion of drugs for 20 major disease areas.")

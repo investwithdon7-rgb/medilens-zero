@@ -17,8 +17,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
-$GEMINI_API_KEY = trim(getenv('GEMINI_API_KEY') ?: 'YOUR_GEMINI_KEY_HERE');
-$GROQ_API_KEY   = trim(getenv('GROQ_API_KEY')   ?: 'YOUR_GROQ_KEY_HERE');
+// ── AUTHENTICATION & SECRETS ──────────────────────────────────────────────────
+// Fallback: If environment variables are not set (common in FTP-only hosting),
+// you can create a 'secrets.php' file in this same directory.
+if (file_exists(__DIR__ . '/secrets.php')) {
+    include_once __DIR__ . '/secrets.php';
+}
+
+$GEMINI_API_KEY = getenv('GEMINI_API_KEY') ?: $_SERVER['GEMINI_API_KEY'] ?: null;
+$GROQ_API_KEY   = getenv('GROQ_API_KEY')   ?: $_SERVER['GROQ_API_KEY']   ?: null;
+$PROXY_TOKEN    = getenv('MEDILENS_PROXY_TOKEN') ?: $_SERVER['MEDILENS_PROXY_TOKEN'] ?: null;
+
+if (!$GEMINI_API_KEY || !$GROQ_API_KEY || !$PROXY_TOKEN) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Server configuration error: Missing API Keys or Proxy Token.']);
+    exit;
+}
+
+$client_token = $_SERVER['HTTP_X_MEDILENS_TOKEN'] ?? '';
+
+if ($PROXY_TOKEN && $client_token !== $PROXY_TOKEN) {
+    http_response_code(403);
+    die(json_encode(['error' => 'Forbidden: Invalid proxy token']));
+}
 
 $DEBUG_LOG = [];
 $DEBUG_LOG[] = "Init: Forced. G_len=".strlen($GEMINI_API_KEY).", Gr_len=".strlen($GROQ_API_KEY);

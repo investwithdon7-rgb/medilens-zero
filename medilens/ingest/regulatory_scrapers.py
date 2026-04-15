@@ -4,7 +4,11 @@ import logging
 import asyncio
 from typing import List, Dict
 from datetime import datetime
-from ..firebase_client import db
+from medilens.firebase_client import get_db
+
+# Note: Medilens is run as a module, so we use absolute imports
+# or ensured package structure.
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

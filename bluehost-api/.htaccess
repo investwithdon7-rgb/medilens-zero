@@ -1,0 +1,14 @@
+# Prevent direct web access to the secrets file
+<Files "secrets.php">
+    Require all denied
+</Files>
+
+# Optimal PHP settings for AI proxy
+<IfModule mod_php7.c>
+    php_value max_execution_time 30
+    php_value memory_limit 128M
+</IfModule>
+<IfModule mod_php.c>
+    php_value max_execution_time 30
+    php_value memory_limit 128M
+</IfModule>

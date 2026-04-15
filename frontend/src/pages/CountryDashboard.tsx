@@ -124,7 +124,7 @@ export default function CountryDashboard() {
   if (!data)   return <Seeding code={code} />;
 
   const lag    = data.lag_summary ?? {};
-  const gaps   = data.top_gaps ?? [];
+  const gaps   = (data.top_gaps ?? []).slice(0, 10);   // show 10 biggest lags
   const equity = accessEquityScore(lag.drugs_behind_2yr ?? 0, lag.total ?? 1);
 
   return (
@@ -265,7 +265,9 @@ export default function CountryDashboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
               <Clock size={18} style={{ color: 'var(--amber-400)' }} />
               <h3>Biggest Access Gaps</h3>
-              <span className="badge badge-amber" style={{ marginLeft: 'auto' }}>{gaps.length} drugs</span>
+              <span className="badge badge-amber" style={{ marginLeft: 'auto' }}>
+                {data.new_drugs_not_registered ?? gaps.length} drugs missing · showing top {Math.min(gaps.length, 10)}
+              </span>
             </div>
 
             <div className="gap-table-header text-xs text-muted">
@@ -279,9 +281,16 @@ export default function CountryDashboard() {
             {gaps.map((g: any, i: number) => {
               const bottleneck = classifyGap(g, incomeClass);
               const info = BOTTLENECK_INFO[bottleneck];
-              const lagYears = g.first_approved
-                ? ((Date.now() - new Date(g.first_approved).getTime()) / (1000 * 60 * 60 * 24 * 365)).toFixed(1)
-                : null;
+              // Prefer pre-computed lag_days; fall back to live calculation
+              const lagDays = g.lag_days ?? (g.first_approved
+                ? (Date.now() - new Date(g.first_approved).getTime()) / (1000 * 60 * 60 * 24)
+                : null);
+              const lagYears = lagDays ? (lagDays / 365).toFixed(1) : null;
+              const lagBadgeColor = lagDays
+                ? lagDays > 1825 ? 'badge-red'     // >5 yr
+                : lagDays > 730  ? 'badge-amber'   // >2 yr
+                : 'badge-outline'
+                : 'badge-outline';
 
               return (
                 <div key={i} className="gap-table-row">
@@ -296,7 +305,11 @@ export default function CountryDashboard() {
                     {g.first_approved
                       ? <>
                           {new Date(g.first_approved).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })}
-                          {lagYears && <span className="badge badge-red" style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>{lagYears}yr gap</span>}
+                          {lagYears && (
+                            <span className={`badge ${lagBadgeColor}`} style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>
+                              {lagYears}yr gap
+                            </span>
+                          )}
                         </>
                       : '—'}
                   </div>

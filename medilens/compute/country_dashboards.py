@@ -41,6 +41,7 @@ def run():
         "drugs_behind_2yr": 0,
         "top_gaps": [],
         "total_drugs_globally": 0,
+        "total_gaps": 0,          # total unregistered drugs (not capped at 20)
     })
 
     for drug_doc in drugs:
@@ -94,12 +95,15 @@ def run():
                     except (ValueError, TypeError):
                         pass
             else:
-                # Drug not registered — potential gap
+                # Drug not registered in this specific country — access gap
                 if first_dt and (now - first_dt).days > 365:
+                    lag_days = (now - first_dt).days
+                    country_data[country]["total_gaps"] += 1
                     country_data[country]["top_gaps"].append({
-                        "inn":           drug_doc.id,
-                        "first_approved": first_global_date,
-                        "condition":      drug.get("drug_class") or "Pending Analysis",
+                        "inn":            drug_doc.id,
+                        "first_approved":  first_global_date,
+                        "lag_days":        lag_days,
+                        "condition":       drug.get("drug_class") or "Pending Analysis",
                     })
 
     # Final pass for pricing percentile and shortage risk
@@ -161,16 +165,17 @@ def run():
         # In this dashboard, shortage_risk_high usually means 'Number of meds at risk'
         real_shortage_risk = int(avg_vulnerability * 15) 
 
-        # Write to Firestore
-        data["top_gaps"].sort(key=lambda x: x.get("first_approved") or "", reverse=True)
-        data["top_gaps"] = data["top_gaps"][:10]
+        # Sort by biggest lag first (oldest unregistered gap = most critical)
+        # reverse=False on first_approved means oldest date first = longest wait
+        data["top_gaps"].sort(key=lambda x: x.get("lag_days", 0), reverse=True)
+        data["top_gaps"] = data["top_gaps"][:20]   # store top 20; UI shows 10
 
         ref = db.collection("country_dashboards").document(country)
         batch.set(ref, {
             "country_code":    country,
             "country_name":    COUNTRY_NAMES.get(country, country),
             "drugs_approved":  data["drugs_approved"],
-            "new_drugs_not_registered": len(data["top_gaps"]),
+            "new_drugs_not_registered": data["total_gaps"],   # real total, not capped
             "pricing_percentile": real_pricing_percentile,
             "shortage_risk_high": real_shortage_risk,
             "lag_summary": {

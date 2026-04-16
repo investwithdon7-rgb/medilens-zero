@@ -486,15 +486,28 @@ export default function CountryDashboard() {
           </div>
         )}
 
-        {/* Empty state when no drug data yet */}
-        {gaps.length === 0 && lateDrugs.length === 0 && (
+        {/* Empty state — only when ALL three drug lists are empty */}
+        {gaps.length === 0 && lateDrugs.length === 0 && priceGaps.length === 0 && (
           <div className="card card-lg text-center" style={{ marginBottom: '1.5rem', padding: '3rem 2rem' }}>
             <Clock size={40} style={{ color: 'var(--border-strong)', margin: '0 auto 1rem' }} />
-            <h4 className="mb-2">Drug access data loading</h4>
-            <p className="text-secondary text-sm" style={{ maxWidth: 420, margin: '0 auto' }}>
-              Registration records for {data.country_name} are being processed from FDA, EMA, and WHO sources.
-              Gap analysis will appear once enough cross-country data is indexed.
-            </p>
+            {data.drugs_approved > 0 ? (
+              <>
+                <h4 className="mb-2">Strong access profile</h4>
+                <p className="text-secondary text-sm" style={{ maxWidth: 460, margin: '0 auto' }}>
+                  {data.country_name} registers drugs quickly and broadly — no significant approval gaps or
+                  price disparities found in our tracked dataset. Detailed gap analysis expands as more
+                  cross-country approval data is indexed daily.
+                </p>
+              </>
+            ) : (
+              <>
+                <h4 className="mb-2">Registration data indexing</h4>
+                <p className="text-secondary text-sm" style={{ maxWidth: 460, margin: '0 auto' }}>
+                  Approval records for {data.country_name} are being processed from FDA, EMA, and WHO sources.
+                  Gap and price analysis will appear once cross-country data is fully indexed.
+                </p>
+              </>
+            )}
           </div>
         )}
 

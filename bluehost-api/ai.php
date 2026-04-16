@@ -5,8 +5,13 @@
  * Providers: Gemini (primary) → Groq Llama (fallback)
  */
 
-$origin = $_SERVER['HTTP_ORIGIN'] ?? 'https://tekdruid.com';
-header("Access-Control-Allow-Origin: $origin");
+// Strict CORS origin whitelist — never echo back arbitrary origins
+$allowed_origins = ['https://tekdruid.com', 'https://www.tekdruid.com'];
+$request_origin  = $_SERVER['HTTP_ORIGIN'] ?? '';
+$cors_origin     = in_array($request_origin, $allowed_origins, true)
+    ? $request_origin
+    : 'https://tekdruid.com';
+header("Access-Control-Allow-Origin: $cors_origin");
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-Medilens-Token');
 header('Content-Type: application/json; charset=utf-8');
@@ -36,10 +41,25 @@ if (!$GEMINI_API_KEY || !$GROQ_API_KEY || !$PROXY_TOKEN) {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 $client_token = $_SERVER['HTTP_X_MEDILENS_TOKEN'] ?? '';
-if ($client_token !== $PROXY_TOKEN) {
+if (!hash_equals($PROXY_TOKEN, $client_token)) {
     http_response_code(403);
-    die(json_encode(['error' => 'Forbidden: Invalid proxy token']));
+    die(json_encode(['error' => 'Forbidden']));
 }
+
+// ── Rate limiting (file-based, per-IP, max 20 req/hour) ───────────────────────
+$ip          = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+$rate_file   = sys_get_temp_dir() . '/ml_rate_' . md5($ip) . '.json';
+$window      = 3600;   // 1 hour
+$max_req     = 20;
+$now         = time();
+$rate_data   = file_exists($rate_file) ? json_decode(file_get_contents($rate_file), true) : [];
+$rate_data   = array_filter($rate_data, fn($t) => $t > $now - $window);
+if (count($rate_data) >= $max_req) {
+    http_response_code(429);
+    die(json_encode(['error' => 'Too many requests. AI features are limited to 20 per hour per IP.']));
+}
+$rate_data[] = $now;
+file_put_contents($rate_file, json_encode(array_values($rate_data)));
 
 $DEBUG_LOG = [];
 
@@ -49,11 +69,18 @@ $body = json_decode($raw, true);
 
 if (!$body || !isset($body['task'], $body['payload'])) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid JSON payload', 'debug' => $DEBUG_LOG]);
+    echo json_encode(['error' => 'Invalid request payload']);
     exit;
 }
 
+$allowed_tasks = ['policy_brief', 'appeal_letter', 'country_narrative', 'equivalence',
+                   'drug_country_analysis', 'shortage_risk', 'advocacy_plan'];
 $task    = $body['task'];
+if (!in_array($task, $allowed_tasks, true)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Unknown task type']);
+    exit;
+}
 $payload = $body['payload'];
 
 // ── Extract common fields ─────────────────────────────────────────────────────
@@ -454,9 +481,16 @@ if (!$final_result) {
 }
 
 // ── Respond ───────────────────────────────────────────────────────────────────
+// Debug logs are stripped from production responses to avoid leaking internals.
+$is_dev = (getenv('APP_ENV') === 'development');
+
 if ($final_result) {
-    echo json_encode(['result' => $final_result, 'provider' => $source, 'debug' => $DEBUG_LOG]);
+    $resp = ['result' => $final_result, 'provider' => $source];
+    if ($is_dev) $resp['debug'] = $DEBUG_LOG;
+    echo json_encode($resp);
 } else {
     http_response_code(502);
-    echo json_encode(['error' => 'Both AI providers failed', 'debug' => $DEBUG_LOG]);
+    $resp = ['error' => 'AI service temporarily unavailable. Please try again in a moment.'];
+    if ($is_dev) $resp['debug'] = $DEBUG_LOG;
+    echo json_encode($resp);
 }

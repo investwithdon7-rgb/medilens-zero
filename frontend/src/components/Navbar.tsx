@@ -67,18 +67,35 @@ export default function Navbar() {
               }
             }}
             aria-label="Search drugs"
+            aria-autocomplete="list"
+            aria-controls="search-results-list"
+            aria-expanded={results.length > 0}
           />
           {results.length > 0 && (
-            <div className="search-results">
-              {results.map((hit) => (
+            <div
+              className="search-results"
+              role="listbox"
+              aria-label="Search results"
+              id="search-results-list"
+            >
+              {results.map((hit, i) => (
                 <div
                   key={hit.id}
                   className="search-result-item"
+                  role="option"
+                  aria-selected={i === 0}
+                  tabIndex={0}
                   onClick={() => handleSelect(hit.document?.inn ?? hit.id)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSelect(hit.document?.inn ?? hit.id);
+                    }
+                  }}
                 >
                   <div className="search-result-name">{hit.document?.inn}</div>
                   <div className="search-result-meta">
-                    {hit.document?.brand_names} · {hit.document?.drug_class}
+                    {hit.document?.brand_names}{hit.document?.drug_class ? ` · ${hit.document.drug_class}` : ''}
                   </div>
                 </div>
               ))}
@@ -100,15 +117,17 @@ export default function Navbar() {
         <button
           className="btn btn-ghost btn-sm mobile-menu-toggle"
           onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Menu"
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-nav-drawer"
         >
-          {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+          {mobileOpen ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}
         </button>
       </div>
 
       {/* Mobile Menu Drawer */}
       {mobileOpen && (
-        <div className="mobile-nav">
+        <div className="mobile-nav" id="mobile-nav-drawer" role="navigation" aria-label="Mobile menu">
           <ul className="mobile-nav-links">
             <li><NavLink to="/" onClick={() => setMobileOpen(false)}>Dashboard</NavLink></li>
             <li><NavLink to="/new-drugs" onClick={() => setMobileOpen(false)}>New Drugs</NavLink></li>

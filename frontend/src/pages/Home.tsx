@@ -103,7 +103,8 @@ export default function Home() {
           </div>
           <p className="text-secondary mb-4" style={{ marginBottom: '1.5rem', maxWidth: 640 }}>
             How long does it take for new drugs to reach high-income vs. lower-income countries?
-            The gap varies dramatically by therapeutic area.
+            The gap varies dramatically by therapeutic area.{' '}
+            <span className="badge badge-outline text-xs" style={{ verticalAlign: 'middle' }}>Illustrative estimates</span>
           </p>
 
           <div className="card card-lg">

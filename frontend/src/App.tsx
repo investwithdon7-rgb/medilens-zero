@@ -1,28 +1,25 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import ErrorBoundary from './components/ErrorBoundary';
 import Home from './pages/Home';
 import DrugProfile from './pages/DrugProfile';
 import NewDrugs from './pages/NewDrugs';
 import Countries from './pages/Countries';
 import CountryDashboard from './pages/CountryDashboard';
-import { useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import NotFound from './pages/NotFound';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   return null;
 }
-
-import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   return (
     <BrowserRouter basename="/medilens">
       <ScrollToTop />
-      {/* v1.0.1-fresh-deploy-check */}
       <Navbar />
       <main style={{ flex: 1 }}>
         <ErrorBoundary>
@@ -32,9 +29,11 @@ export default function App() {
             <Route path="/new-drugs"     element={<NewDrugs />} />
             <Route path="/countries"     element={<Countries />} />
             <Route path="/country/:code" element={<CountryDashboard />} />
+            <Route path="*"              element={<NotFound />} />
           </Routes>
         </ErrorBoundary>
       </main>
+      <Footer />
     </BrowserRouter>
   );
 }

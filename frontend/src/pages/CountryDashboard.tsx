@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Globe, Clock, X, Copy, Check, RefreshCw, Shield, FileText, Megaphone, DollarSign, TrendingDown } from 'lucide-react';
+import { Globe, Clock, X, Copy, Check, RefreshCw, Shield, FileText, Megaphone, DollarSign } from 'lucide-react';
 import { getCountryDashboard } from '../lib/firebase';
 import { callAiProxy } from '../lib/ai-proxy';
 import { COUNTRY_DATA, accessEquityScore, incomeClassBadge } from '../lib/reference-data';

@@ -209,7 +209,7 @@ export default function NewDrugs() {
 function DrugCard({ drug }: { drug: any }) {
   const countries: string[]  = drug.countries_registered ?? [];
   const countryCount         = countries.length;
-  const firstCountryRef      = COUNTRY_DATA[drug.first_approval_country];
+  // firstCountryRef removed — authority label used instead of country name
 
   // Compute LMIC reach
   const lmicCountries = countries.filter(c => {

@@ -1,4 +1,4 @@
-name: 01 · Ingest Approvals (FDA + EMA + WHO PQ)
+name: 01 · Ingest Approvals (FDA + EMA + PMDA + CDSCO + WHO PQ)
 
 on:
   push:
@@ -56,6 +56,16 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: python -m medilens.ingest.approval_seeds
+
+      - name: Ingest PMDA Japan Approvals
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.pmda
+
+      - name: Ingest CDSCO India Approvals
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.cdsco
 
       - name: Compute Approval Lags
         env:

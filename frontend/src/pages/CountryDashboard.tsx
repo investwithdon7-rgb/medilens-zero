@@ -140,9 +140,10 @@ export default function CountryDashboard() {
   if (loading) return <LoadingSkeleton />;
   if (!data)   return <Seeding code={code} />;
 
-  const lag    = data.lag_summary ?? {};
-  const gaps   = (data.top_gaps ?? []).slice(0, 10);   // show 10 biggest lags
-  const equity = accessEquityScore(lag.drugs_behind_2yr ?? 0, lag.total ?? 1);
+  const lag        = data.lag_summary ?? {};
+  const gaps       = (data.top_gaps ?? []).slice(0, 10);    // unregistered — show 10
+  const lateDrugs  = (data.late_drugs ?? []).slice(0, 10);  // registered but >2yr late
+  const equity     = accessEquityScore(lag.drugs_behind_2yr ?? 0, lag.total ?? 1);
 
   return (
     <>
@@ -276,14 +277,14 @@ export default function CountryDashboard() {
           </div>
         )}
 
-        {/* Top access gaps */}
+        {/* Top access gaps — drugs NOT registered here */}
         {gaps.length > 0 && (
-          <div id="access-gaps" className="card card-lg">
+          <div id="access-gaps" className="card card-lg" style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
               <Clock size={18} style={{ color: 'var(--amber-400)' }} />
-              <h3>Biggest Access Gaps</h3>
+              <h3>Unregistered Drugs</h3>
               <span className="badge badge-amber" style={{ marginLeft: 'auto' }}>
-                {data.new_drugs_not_registered ?? gaps.length} drugs missing · showing top {Math.min(gaps.length, 10)}
+                {data.new_drugs_not_registered ?? gaps.length} missing · top {Math.min(gaps.length, 10)}
               </span>
             </div>
 
@@ -298,14 +299,13 @@ export default function CountryDashboard() {
             {gaps.map((g: any, i: number) => {
               const bottleneck = classifyGap(g, incomeClass);
               const info = BOTTLENECK_INFO[bottleneck];
-              // Prefer pre-computed lag_days; fall back to live calculation
               const lagDays = g.lag_days ?? (g.first_approved
                 ? (Date.now() - new Date(g.first_approved).getTime()) / (1000 * 60 * 60 * 24)
                 : null);
               const lagYears = lagDays ? (lagDays / 365).toFixed(1) : null;
               const lagBadgeColor = lagDays
-                ? lagDays > 1825 ? 'badge-red'     // >5 yr
-                : lagDays > 730  ? 'badge-amber'   // >2 yr
+                ? lagDays > 1825 ? 'badge-red'
+                : lagDays > 730  ? 'badge-amber'
                 : 'badge-outline'
                 : 'badge-outline';
 
@@ -317,38 +317,26 @@ export default function CountryDashboard() {
                       {g.inn}
                     </Link>
                   </div>
-
                   <div className="text-sm text-muted">
                     {g.first_approved
-                      ? <>
-                          {new Date(g.first_approved).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })}
-                          {lagYears && (
-                            <span className={`badge ${lagBadgeColor}`} style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>
-                              {lagYears}yr gap
-                            </span>
-                          )}
+                      ? <>{new Date(g.first_approved).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })}
+                          {lagYears && <span className={`badge ${lagBadgeColor}`} style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>{lagYears}yr gap</span>}
                         </>
                       : '—'}
                   </div>
-
                   <div>
                     <span className="badge badge-outline text-xs" style={{ border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}>
                       {g.condition ?? '—'}
                     </span>
                   </div>
-
                   <div title={info.description}>
                     <span className={`badge ${info.badgeClass} text-xs`}>{info.label}</span>
                   </div>
-
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div>
                     <button
                       className="btn btn-outline btn-sm"
                       disabled={isGenerating === g.inn}
-                      onClick={() => handleAI('drug_country_analysis',
-                        `Analysis: ${g.inn} in ${data.country_name}`,
-                        { drug: g.inn, gap_data: g }
-                      )}
+                      onClick={() => handleAI('drug_country_analysis', `Analysis: ${g.inn} in ${data.country_name}`, { drug: g.inn, gap_data: g })}
                     >
                       {isGenerating === g.inn ? '…' : 'Analyze'}
                     </button>
@@ -359,7 +347,82 @@ export default function CountryDashboard() {
 
             <p className="text-xs text-muted mt-4">
               Barrier types are heuristic estimates based on income class, therapeutic category, and lag duration.
-              Use "Analyze" for AI-generated per-drug assessment.
+            </p>
+          </div>
+        )}
+
+        {/* Late registrations — drugs registered here but with >2yr lag */}
+        {lateDrugs.length > 0 && (
+          <div id="late-drugs" className="card card-lg" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              <Clock size={18} style={{ color: 'var(--blue-400)' }} />
+              <h3>Slow-to-Arrive Approvals</h3>
+              <span className="badge badge-blue" style={{ marginLeft: 'auto' }}>
+                {lag.drugs_behind_2yr ?? lateDrugs.length} drugs · &gt;2yr after global launch
+              </span>
+            </div>
+            <p className="text-xs text-muted" style={{ marginBottom: '1rem' }}>
+              These drugs are registered in {data.country_name} but arrived significantly later than their global first approval —
+              indicating regulatory or market access delays.
+            </p>
+
+            <div className="gap-table-header text-xs text-muted">
+              <span>Drug (INN)</span>
+              <span>Global First</span>
+              <span>Arrived Here</span>
+              <span>Lag</span>
+              <span></span>
+            </div>
+
+            {lateDrugs.map((g: any, i: number) => {
+              const lagYears = g.lag_days ? (g.lag_days / 365).toFixed(1) : null;
+              const lagBadge = g.lag_days > 1825 ? 'badge-red' : g.lag_days > 730 ? 'badge-amber' : 'badge-outline';
+
+              return (
+                <div key={i} className="gap-table-row">
+                  <div className="gap-drug-name">
+                    <Link to={`/drug/${g.inn}`} style={{ color: 'var(--teal-400)', fontWeight: 600 }}>
+                      {g.inn}
+                    </Link>
+                  </div>
+                  <div className="text-sm text-muted">
+                    {g.first_approved
+                      ? new Date(g.first_approved).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })
+                      : '—'}
+                  </div>
+                  <div className="text-sm text-muted">
+                    {g.country_approval_date
+                      ? new Date(g.country_approval_date).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })
+                      : '—'}
+                  </div>
+                  <div>
+                    {lagYears && (
+                      <span className={`badge ${lagBadge} text-xs`}>{lagYears}yr delay</span>
+                    )}
+                  </div>
+                  <div>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      disabled={isGenerating === `late-${g.inn}`}
+                      onClick={() => handleAI('drug_country_analysis', `Analysis: ${g.inn} in ${data.country_name}`, { drug: g.inn, gap_data: g })}
+                    >
+                      {isGenerating === `late-${g.inn}` ? '…' : 'Analyze'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Empty state when no drug data yet */}
+        {gaps.length === 0 && lateDrugs.length === 0 && (
+          <div className="card card-lg text-center" style={{ marginBottom: '1.5rem', padding: '3rem 2rem' }}>
+            <Clock size={40} style={{ color: 'var(--border-strong)', margin: '0 auto 1rem' }} />
+            <h4 className="mb-2">Drug access data loading</h4>
+            <p className="text-secondary text-sm" style={{ maxWidth: 420, margin: '0 auto' }}>
+              Registration records for {data.country_name} are being processed from FDA, EMA, and WHO sources.
+              Gap analysis will appear once enough cross-country data is indexed.
             </p>
           </div>
         )}

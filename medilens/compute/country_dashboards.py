@@ -50,6 +50,7 @@ def run():
         "drugs_approved": 0,
         "drugs_behind_2yr": 0,
         "top_gaps": [],
+        "late_drugs": [],          # registered but >2yr lag vs global first
         "total_drugs_globally": 0,
         "total_gaps": 0,          # total unregistered drugs (not capped at 20)
     })
@@ -116,6 +117,14 @@ def run():
                         lag_days   = (country_dt - first_dt).days
                         if lag_days > 730:   # >2 yr behind global first
                             country_data[country]["drugs_behind_2yr"] += 1
+                            # Store for the "registered late" list shown in the UI
+                            country_data[country]["late_drugs"].append({
+                                "inn":                  drug_doc.id,
+                                "first_approved":       first_global_date,
+                                "country_approval_date": reg_date[:10],
+                                "lag_days":             lag_days,
+                                "condition":            drug.get("drug_class") or "Pending Analysis",
+                            })
                     except (ValueError, TypeError):
                         pass
             else:
@@ -190,9 +199,12 @@ def run():
         real_shortage_risk = int(avg_vulnerability * 15) 
 
         # Sort by biggest lag first (oldest unregistered gap = most critical)
-        # reverse=False on first_approved means oldest date first = longest wait
         data["top_gaps"].sort(key=lambda x: x.get("lag_days", 0), reverse=True)
         data["top_gaps"] = data["top_gaps"][:20]   # store top 20; UI shows 10
+
+        # Late drugs: registered but took longest to arrive
+        data["late_drugs"].sort(key=lambda x: x.get("lag_days", 0), reverse=True)
+        data["late_drugs"] = data["late_drugs"][:10]
 
         ref = db.collection("country_dashboards").document(country)
         batch.set(ref, {
@@ -207,6 +219,7 @@ def run():
                 "total":            data["total_drugs_globally"],
             },
             "top_gaps":        data["top_gaps"],
+            "late_drugs":      data["late_drugs"],
             "updated_at":      now.isoformat() + "Z",
         }, merge=True)
         written += 1

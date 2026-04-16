@@ -4,25 +4,66 @@ import { Zap, RefreshCw, Globe, TrendingUp } from 'lucide-react';
 import { getNewDrugsFeed } from '../lib/firebase';
 import { COUNTRY_DATA } from '../lib/reference-data';
 
+const DISEASE_CATS = [
+  { key: 'all',            label: 'All Diseases'       },
+  { key: 'oncology',       label: 'Cancer / Oncology'  },
+  { key: 'cardiovascular', label: 'Cardiovascular'     },
+  { key: 'diabetes',       label: 'Diabetes & Obesity' },
+  { key: 'hiv',            label: 'HIV / AIDS'         },
+  { key: 'infectious',     label: 'Infectious Diseases'},
+  { key: 'respiratory',    label: 'Respiratory'        },
+  { key: 'neurology',      label: 'Neurology'          },
+  { key: 'mental-health',  label: 'Mental Health'      },
+  { key: 'autoimmune',     label: 'Autoimmune'         },
+  { key: 'rare',           label: 'Rare Diseases'      },
+  { key: 'maternal',       label: 'Maternal Health'    },
+] as const;
+
+type DiseaseCat = typeof DISEASE_CATS[number]['key'];
+
+function getDiseaseCategory(drugClass: string): DiseaseCat {
+  const c = (drugClass || '').toLowerCase();
+  if (/oncol|cancer|tumor|leukemi|lymphom|carcinoma|melanom|immunother|checkpoint|pembroliz|nivolum|trastuz|kinase inhib|myelom|sarcoma/.test(c)) return 'oncology';
+  if (/cardio|hypertens|heart fail|lipid|statin|cholesterol|angina|arrhythm|anticoagul|thrombos|atrial|venous/.test(c)) return 'cardiovascular';
+  if (/diabet|insulin|glucose|sglt|glp-1|glp1|metform|hba1c|obesity|weight/.test(c)) return 'diabetes';
+  if (/hiv|antiretro|aids|integrase|protease inhib|nrti|nnrti|cabotegravir/.test(c)) return 'hiv';
+  if (/tuberc|malaria|hepatit|anti-infect|antibiotic|antimicro|antivir|antifung|pneumon|sepsis/.test(c)) return 'infectious';
+  if (/respir|asthma|copd|pulmon|broncho|inhaled|lung/.test(c)) return 'respiratory';
+  if (/neuro|epilep|alzheimer|parkinson|multiple sclerosis|\bms\b|seizure|dementia/.test(c)) return 'neurology';
+  if (/psych|mental|depress|anxiety|bipolar|schizo|antidepres|adhd/.test(c)) return 'mental-health';
+  if (/autoimmun|rheuma|arthrit|inflamm|\btnf\b|interleukin|jak inhib|psoriasis|crohn|colitis/.test(c)) return 'autoimmune';
+  if (/rare|orphan|genetic|enzyme replac|lysosom|muscular dystrophy|cystic fibrosis/.test(c)) return 'rare';
+  if (/matern|obstet|oxytocin|eclampsia|prenatal|postpart/.test(c)) return 'maternal';
+  return 'all';
+}
+
 export default function NewDrugs() {
   const [drugs, setDrugs]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'lmic' | 'hic-only'>('all');
+  const [disease, setDisease] = useState<DiseaseCat>('all');
 
   useEffect(() => {
     getNewDrugsFeed(30).then(d => { setDrugs(d); setLoading(false); });
   }, []);
 
-  // Filter by coverage equity
+  // Filter by coverage equity and disease category
   const filtered = drugs.filter(drug => {
-    if (filter === 'all') return true;
-    const countries: string[] = drug.countries_registered ?? [];
-    const hasLMIC = countries.some(c => {
-      const ref = COUNTRY_DATA[c];
-      return ref && (ref.income_class === 'LMIC' || ref.income_class === 'LIC');
-    });
-    if (filter === 'lmic')     return hasLMIC;
-    if (filter === 'hic-only') return !hasLMIC && countries.length > 0;
+    // equity filter (existing)
+    if (filter !== 'all') {
+      const countries: string[] = drug.countries_registered ?? [];
+      const hasLMIC = countries.some(c => {
+        const ref = COUNTRY_DATA[c];
+        return ref && (ref.income_class === 'LMIC' || ref.income_class === 'LIC');
+      });
+      if (filter === 'lmic' && !hasLMIC) return false;
+      if (filter === 'hic-only' && (hasLMIC || countries.length === 0)) return false;
+    }
+    // disease filter
+    if (disease !== 'all') {
+      const cat = getDiseaseCategory(drug.drug_class ?? '');
+      if (cat !== disease && getDiseaseCategory(drug.indication ?? '') !== disease) return false;
+    }
     return true;
   });
 
@@ -81,6 +122,26 @@ export default function NewDrugs() {
                   : ''}
                 Filters below show equity gaps across income groups.
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Disease / condition filter */}
+        {!loading && drugs.length > 0 && (
+          <div style={{ marginBottom: '1rem' }}>
+            <p className="text-xs text-muted" style={{ marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Filter by condition
+            </p>
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              {DISEASE_CATS.map(cat => (
+                <button
+                  key={cat.key}
+                  className={`btn btn-sm ${disease === cat.key ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setDisease(cat.key)}
+                >
+                  {cat.label}
+                </button>
+              ))}
             </div>
           </div>
         )}

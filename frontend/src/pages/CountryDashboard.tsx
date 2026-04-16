@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Globe, Clock, X, Copy, Check, RefreshCw, Shield, FileText, Megaphone } from 'lucide-react';
+import { Globe, Clock, X, Copy, Check, RefreshCw, Shield, FileText, Megaphone, DollarSign, TrendingDown } from 'lucide-react';
 import { getCountryDashboard } from '../lib/firebase';
 import { callAiProxy } from '../lib/ai-proxy';
 import { COUNTRY_DATA, accessEquityScore, incomeClassBadge } from '../lib/reference-data';
@@ -143,6 +143,7 @@ export default function CountryDashboard() {
   const lag        = data.lag_summary ?? {};
   const gaps       = (data.top_gaps ?? []).slice(0, 10);    // unregistered — show 10
   const lateDrugs  = (data.late_drugs ?? []).slice(0, 10);  // registered but >2yr late
+  const priceGaps  = (data.price_gaps ?? []).slice(0, 12);
   const equity     = accessEquityScore(lag.drugs_behind_2yr ?? 0, lag.total ?? 1);
 
   return (
@@ -412,6 +413,76 @@ export default function CountryDashboard() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Price Gap Intelligence */}
+        {priceGaps.length > 0 && (
+          <div className="card card-lg" style={{ marginBottom: '1.5rem', borderLeft: '3px solid var(--amber-400)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              <DollarSign size={18} style={{ color: 'var(--amber-400)' }} />
+              <h3>Price Gap Intelligence</h3>
+              <span className="badge badge-amber" style={{ marginLeft: 'auto' }}>
+                {priceGaps.length} drugs priced higher than global minimum
+              </span>
+            </div>
+            <p className="text-xs text-muted" style={{ marginBottom: '1rem' }}>
+              Reference prices for essential medicines in {data.country_name} vs the lowest recorded price globally.
+              Higher ratios indicate potential for negotiation or generic substitution.
+            </p>
+
+            <div className="gap-table-header text-xs text-muted">
+              <span>Drug (INN)</span>
+              <span>Price here</span>
+              <span>Global min</span>
+              <span>Ratio</span>
+              <span>Category</span>
+            </div>
+
+            {priceGaps.map((g: any, i: number) => {
+              const cheapestRef = COUNTRY_DATA[g.cheapest_country];
+              const ratioColor = g.ratio >= 50 ? 'var(--red-400)' : g.ratio >= 10 ? 'var(--amber-400)' : 'var(--text-secondary)';
+              const ratioBadge = g.ratio >= 50 ? 'badge-red' : g.ratio >= 10 ? 'badge-amber' : 'badge-outline';
+
+              return (
+                <div key={i} className="gap-table-row">
+                  <div className="gap-drug-name">
+                    <Link to={`/drug/${g.inn}`} style={{ color: 'var(--teal-400)', fontWeight: 600 }}>
+                      {g.inn}
+                    </Link>
+                  </div>
+
+                  <div className="text-sm font-mono" style={{ color: ratioColor }}>
+                    ${g.local_usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {g.unit && <span className="text-xs text-muted" style={{ marginLeft: '0.25rem' }}>{g.unit}</span>}
+                  </div>
+
+                  <div className="text-sm text-muted font-mono">
+                    ${g.global_min_usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {cheapestRef && (
+                      <span className="text-xs text-muted" style={{ marginLeft: '0.3rem' }}>({cheapestRef.name})</span>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className={`badge ${ratioBadge} text-xs`} style={{ fontWeight: 700 }}>
+                      {g.ratio}×
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="badge badge-outline text-xs" style={{ border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}>
+                      {g.condition || '—'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            <p className="text-xs text-muted" style={{ marginTop: '1rem' }}>
+              Prices sourced from WHO GPRM, MSF, NHS Drug Tariff, GoodRx, and national formularies (2023–2024).
+              Ratios ≥10× flagged amber; ≥50× flagged red. Click a drug for full global pricing comparison.
+            </p>
           </div>
         )}
 

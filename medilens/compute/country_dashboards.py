@@ -51,6 +51,7 @@ def run():
         "drugs_behind_2yr": 0,
         "top_gaps": [],
         "late_drugs": [],          # registered but >2yr lag vs global first
+        "price_gaps": [],          # drugs where this country pays >> global cheapest
         "total_drugs_globally": 0,
         "total_gaps": 0,          # total unregistered drugs (not capped at 20)
     })
@@ -60,6 +61,32 @@ def run():
         # Load approvals and prices for ALL countries in one pass
         approvals = {a.id: a.to_dict() for a in drug_doc.reference.collection("approvals").stream()}
         prices    = {p.id: p.to_dict() for p in drug_doc.reference.collection("prices").stream()}
+
+        # ── Price gap analysis ─────────────────────────────────────────────────
+        # Find countries with prices and compute ratio vs global minimum.
+        # Prices are already stored as USD equivalent in Firestore.
+        price_usd_by_country = {
+            cc: pd["price"]
+            for cc, pd in prices.items()
+            if pd.get("price") and isinstance(pd["price"], (int, float)) and pd["price"] > 0
+        }
+        if len(price_usd_by_country) >= 2:
+            global_min_usd     = min(price_usd_by_country.values())
+            global_min_country = min(price_usd_by_country, key=price_usd_by_country.get)
+            for country in FOCUS_COUNTRIES:
+                if country in price_usd_by_country:
+                    local_usd = price_usd_by_country[country]
+                    ratio = local_usd / global_min_usd if global_min_usd > 0 else 1.0
+                    if ratio >= 2.0:   # flag when local price >= 2× cheapest globally
+                        country_data[country]["price_gaps"].append({
+                            "inn":                drug_doc.id,
+                            "local_usd":          round(local_usd, 2),
+                            "global_min_usd":     round(global_min_usd, 2),
+                            "cheapest_country":   global_min_country,
+                            "ratio":              round(ratio, 1),
+                            "condition":          drug.get("drug_class") or drug.get("therapeutic_class") or "",
+                            "unit":               prices.get(country, {}).get("unit", ""),
+                        })
 
         first_global_date = drug.get("first_global_approval")
         # Fallback: derive earliest date from any approval record we have
@@ -203,6 +230,9 @@ def run():
         # In this dashboard, shortage_risk_high usually means 'Number of meds at risk'
         real_shortage_risk = int(avg_vulnerability * 15) 
 
+        data["price_gaps"].sort(key=lambda x: x["ratio"], reverse=True)
+        data["price_gaps"] = data["price_gaps"][:12]
+
         # Sort by biggest lag first (oldest unregistered gap = most critical)
         data["top_gaps"].sort(key=lambda x: x.get("lag_days", 0), reverse=True)
         data["top_gaps"] = data["top_gaps"][:20]   # store top 20; UI shows 10
@@ -224,6 +254,7 @@ def run():
                 "total":            data["total_drugs_globally"],
             },
             "top_gaps":        data["top_gaps"],
+            "price_gaps":      data["price_gaps"],
             "late_drugs":      data["late_drugs"],
             "updated_at":      now.isoformat() + "Z",
         }, merge=True)

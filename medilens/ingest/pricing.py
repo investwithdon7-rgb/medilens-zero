@@ -659,8 +659,11 @@ def run():
     batch = db.batch()
     count = 0
 
-    # 1. Try live WHO GPRM data first
-    live_records = fetch_gprm_prices()
+    # 1. WHO GPRM live fetch (disabled: GPRM returns per-tablet/per-unit prices
+    #    that are incompatible with our per-pack reference table, causing false
+    #    600× ratios in the price gap dashboard. Re-enable only after adding
+    #    unit normalisation (e.g. divide by pack size before storing).
+    live_records = []  # fetch_gprm_prices()
     for rec in live_records:
         inn = rec["inn"]
         drug_ref = db.collection("drugs").document(inn)

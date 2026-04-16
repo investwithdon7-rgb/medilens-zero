@@ -65,10 +65,20 @@ def run():
         # ── Price gap analysis ─────────────────────────────────────────────────
         # Find countries with prices and compute ratio vs global minimum.
         # Prices are already stored as USD equivalent in Firestore.
+        #
+        # Sanity filter: WHO GPRM live fetch can produce per-tablet prices (e.g.
+        # $0.008/tablet for metformin from a bulk-procurement record) that are
+        # incomparable to our per-pack reference prices ($0.50/60-tab).
+        # We reject any price below $0.10 USD — the cheapest known per-PACK price
+        # for any medicine in our dataset is ~$0.12 (paracetamol, Nigeria).
+        # This prevents absurd 600× ratios while keeping real low-access prices.
+        MIN_CREDIBLE_PRICE_USD = 0.10
+
         price_usd_by_country = {
             cc: pd["price"]
             for cc, pd in prices.items()
-            if pd.get("price") and isinstance(pd["price"], (int, float)) and pd["price"] > 0
+            if pd.get("price") and isinstance(pd["price"], (int, float))
+            and pd["price"] >= MIN_CREDIBLE_PRICE_USD
         }
         if len(price_usd_by_country) >= 2:
             global_min_usd     = min(price_usd_by_country.values())

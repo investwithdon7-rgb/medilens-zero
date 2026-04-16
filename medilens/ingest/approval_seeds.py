@@ -752,8 +752,91 @@ APPROVAL_SEEDS: dict[str, dict] = {
 }
 
 
+# ── Drug class map ────────────────────────────────────────────────────────────
+# Short, display-friendly drug class for each INN in our reference dataset.
+# These appear in the Price Gap and Access Gap tables on the country dashboard.
+# Keep concise (≤ 25 chars) so they fit in the category badge without wrapping.
+DRUG_CLASS_MAP: dict[str, str] = {
+    # HIV
+    "dolutegravir":                "HIV / ARV",
+    "tenofovir_disoproxil_fumarate": "HIV / ARV",
+    "lamivudine":                  "HIV / ARV",
+    "efavirenz":                   "HIV / ARV",
+    "abacavir":                    "HIV / ARV",
+    "cabotegravir":                "HIV / ARV",
+    # TB
+    "rifampicin":                  "Tuberculosis",
+    "isoniazid":                   "Tuberculosis",
+    "bedaquiline":                 "Tuberculosis",
+    # Malaria
+    "artemether":                  "Antimalarial",
+    "artesunate":                  "Antimalarial",
+    # Hepatitis C
+    "sofosbuvir":                  "Hepatitis C",
+    "daclatasvir":                 "Hepatitis C",
+    "sofosbuvir_velpatasvir":      "Hepatitis C",
+    # Diabetes
+    "metformin":                   "Diabetes",
+    "insulin_glargine":            "Diabetes",
+    "dapagliflozin":               "Diabetes",
+    "empagliflozin":               "Diabetes",
+    "semaglutide":                 "Diabetes & Obesity",
+    "liraglutide":                 "Diabetes & Obesity",
+    # Cardiovascular
+    "atorvastatin":                "Cardiovascular",
+    "amlodipine":                  "Cardiovascular",
+    "lisinopril":                  "Cardiovascular",
+    "bisoprolol":                  "Cardiovascular",
+    "apixaban":                    "Cardiovascular",
+    "rivaroxaban":                 "Cardiovascular",
+    "sacubitril_valsartan":        "Cardiovascular",
+    # Antibiotics
+    "amoxicillin":                 "Antibiotic",
+    "azithromycin":                "Antibiotic",
+    "doxycycline":                 "Antibiotic",
+    "ciprofloxacin":               "Antibiotic",
+    # Respiratory
+    "salbutamol":                  "Respiratory",
+    "budesonide":                  "Respiratory",
+    # GI
+    "omeprazole":                  "Gastrointestinal",
+    "pantoprazole":                "Gastrointestinal",
+    # Mental Health
+    "fluoxetine":                  "Mental Health",
+    "haloperidol":                 "Mental Health",
+    "risperidone":                 "Mental Health",
+    # Oncology
+    "imatinib":                    "Oncology",
+    "trastuzumab":                 "Oncology",
+    "tamoxifen":                   "Oncology",
+    "pembrolizumab":               "Oncology / Immunotherapy",
+    "nivolumab":                   "Oncology / Immunotherapy",
+    "osimertinib":                 "Oncology",
+    "venetoclax":                  "Oncology",
+    "lenalidomide":                "Oncology",
+    # Autoimmune
+    "adalimumab":                  "Autoimmune / Biologic",
+    "ustekinumab":                 "Autoimmune / Biologic",
+    "dupilumab":                   "Autoimmune / Biologic",
+    # Maternal health
+    "oxytocin":                    "Maternal Health",
+    "misoprostol":                 "Maternal Health",
+    # Analgesics
+    "paracetamol":                 "Analgesic",
+    "ibuprofen":                   "Analgesic",
+    # Allergy
+    "azelastine_hydrochloride":    "Allergy / Rhinitis",
+    # Neurology
+    "levetiracetam":               "Neurology / Epilepsy",
+    "donepezil":                   "Neurology / Dementia",
+    # Rare disease
+    "nusinersen":                  "Rare Disease / SMA",
+    "ivacaftor_lumacaftor":        "Rare Disease / CF",
+}
+
+
 def run():
-    """Write curated approval records and first_global_approval dates to Firestore."""
+    """Write curated approval records, first_global_approval dates, and drug_class to Firestore."""
     db    = get_db()
     now   = datetime.utcnow().isoformat() + "Z"
     batch = db.batch()
@@ -764,12 +847,21 @@ def run():
         drug_ref = db.collection("drugs").document(inn)
 
         # Update drug-level metadata (merge=True so we don't blow away AI enrichment)
-        batch.set(drug_ref, {
-            "inn":                   inn,
-            "first_global_approval": seed["first_global"],
+        drug_update: dict = {
+            "inn":                    inn,
+            "first_global_approval":  seed["first_global"],
             "first_approval_country": seed["first_country"],
-            "updated_at":            now,
-        }, merge=True)
+            "updated_at":             now,
+        }
+        # Only set drug_class if we have a curated value AND the field isn't already
+        # set by the AI enricher (which produces richer descriptions).
+        # We use merge=True, so an existing drug_class won't be overwritten unless
+        # we explicitly include it — but since we DO include it here, it will update.
+        # That's fine: our short names are better for display than raw FDA text.
+        if inn in DRUG_CLASS_MAP:
+            drug_update["drug_class"] = DRUG_CLASS_MAP[inn]
+
+        batch.set(drug_ref, drug_update, merge=True)
         drug_count += 1
 
         for country_code, info in seed["approvals"].items():

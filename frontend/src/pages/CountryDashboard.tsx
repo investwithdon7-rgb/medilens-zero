@@ -5,6 +5,19 @@ import { getCountryDashboard } from '../lib/firebase';
 import { callAiProxy } from '../lib/ai-proxy';
 import { COUNTRY_DATA, accessEquityScore, incomeClassBadge } from '../lib/reference-data';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Format a USD price intelligently:
+ * ≥$1000 → "$1,234"   ≥$1 → "$12.34"   <$1 → "$0.54"
+ * Never shows "$0" for a positive price.
+ */
+function fmtUsd(v: number): string {
+  if (v >= 1000)  return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  if (v >= 1)     return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return v.toFixed(2);  // e.g. $0.50
+}
+
 // ── Gap bottleneck classifier ─────────────────────────────────────────────────
 
 type BottleneckType =
@@ -325,8 +338,12 @@ export default function CountryDashboard() {
                         </>
                       : '—'}
                   </div>
-                  <div>
-                    <span className="badge badge-outline text-xs" style={{ border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}>
+                  <div title={g.condition || undefined}>
+                    <span className="badge badge-outline text-xs" style={{
+                      border: '1px solid var(--border-strong)', color: 'var(--text-secondary)',
+                      maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap', display: 'inline-block',
+                    }}>
                       {g.condition ?? '—'}
                     </span>
                   </div>
@@ -453,12 +470,12 @@ export default function CountryDashboard() {
                   </div>
 
                   <div className="text-sm font-mono" style={{ color: ratioColor }}>
-                    ${g.local_usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    ${fmtUsd(g.local_usd)}
                     {g.unit && <span className="text-xs text-muted" style={{ marginLeft: '0.25rem' }}>{g.unit}</span>}
                   </div>
 
                   <div className="text-sm text-muted font-mono">
-                    ${g.global_min_usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    ${fmtUsd(g.global_min_usd)}
                     {cheapestRef && (
                       <span className="text-xs text-muted" style={{ marginLeft: '0.3rem' }}>({cheapestRef.name})</span>
                     )}
@@ -470,8 +487,12 @@ export default function CountryDashboard() {
                     </span>
                   </div>
 
-                  <div>
-                    <span className="badge badge-outline text-xs" style={{ border: '1px solid var(--border-strong)', color: 'var(--text-secondary)' }}>
+                  <div title={g.condition || undefined}>
+                    <span className="badge badge-outline text-xs" style={{
+                      border: '1px solid var(--border-strong)', color: 'var(--text-secondary)',
+                      maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap', display: 'inline-block',
+                    }}>
                       {g.condition || '—'}
                     </span>
                   </div>

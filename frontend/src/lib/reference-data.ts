@@ -29,6 +29,7 @@ export const COUNTRY_DATA: Record<string, CountryRef> = {
   BRA: { name: 'Brazil',          population_m: 215,  monthly_wage_usd: 255,   income_class: 'UMIC', currency: 'BRL', region: 'South America' },
   CAN: { name: 'Canada',          population_m: 38,   monthly_wage_usd: 1_820, income_class: 'HIC',  currency: 'CAD', region: 'North America' },
   DNK: { name: 'Denmark',         population_m: 6,    monthly_wage_usd: 2_150, income_class: 'HIC',  currency: 'DKK', region: 'Europe' },
+  EGY: { name: 'Egypt',           population_m: 105,  monthly_wage_usd: 100,   income_class: 'LMIC', currency: 'EGP', region: 'Africa' },
   FIN: { name: 'Finland',         population_m: 6,    monthly_wage_usd: 1_740, income_class: 'HIC',  currency: 'EUR', region: 'Europe' },
   FRA: { name: 'France',          population_m: 68,   monthly_wage_usd: 1_766, income_class: 'HIC',  currency: 'EUR', region: 'Europe' },
   DEU: { name: 'Germany',         population_m: 84,   monthly_wage_usd: 1_944, income_class: 'HIC',  currency: 'EUR', region: 'Europe' },
@@ -55,7 +56,7 @@ export const USD_RATES: Record<string, number> = {
   USD: 1, GBP: 1.27, EUR: 1.08, AUD: 0.65, CAD: 0.74,
   JPY: 0.0066, INR: 0.012, NGN: 0.00065, KES: 0.0077,
   BRL: 0.20, ZAR: 0.055, PLN: 0.25, DKK: 0.145, SEK: 0.095,
-  LKR: 0.0033, PKR: 0.0036, BDT: 0.009,
+  LKR: 0.0033, PKR: 0.0036, BDT: 0.009, EGP: 0.021,
 };
 
 /**

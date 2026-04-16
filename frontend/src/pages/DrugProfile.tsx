@@ -612,8 +612,8 @@ export default function DrugProfile() {
                   <TrendingDown size={16} />
                   <span>
                     <strong>Financial Toxicity Alert:</strong> Highest price is {priceRatio}× the lowest.
-                    The same drug costs {pricesSorted[0].currency} {pricesSorted[0].price.toFixed(2)} in {pricesSorted[0].country || pricesSorted[0].id}
-                    {' '}vs {pricesSorted[pricesSorted.length - 1].currency} {pricesSorted[pricesSorted.length - 1].price.toFixed(2)} in {pricesSorted[pricesSorted.length - 1].country || pricesSorted[pricesSorted.length - 1].id}.
+                    The same drug costs {pricesSorted[0].currency} {pricesSorted[0].price.toFixed(2)} in {COUNTRY_DATA[pricesSorted[0].country]?.name ?? pricesSorted[0].country}
+                    {' '}vs {pricesSorted[pricesSorted.length - 1].currency} {pricesSorted[pricesSorted.length - 1].price.toFixed(2)} in {COUNTRY_DATA[pricesSorted[pricesSorted.length - 1].country]?.name ?? pricesSorted[pricesSorted.length - 1].country}.
                   </span>
                 </div>
               )}
@@ -624,7 +624,7 @@ export default function DrugProfile() {
                   const barPct = maxPriceUSD > 0 ? (usd / maxPriceUSD) * 100 : 0;
                   return (
                     <div key={countryCode} className="price-row">
-                      <span className="price-country font-bold text-sm">{p.country || countryCode}</span>
+                      <span className="price-country font-bold text-sm">{COUNTRY_DATA[countryCode]?.name ?? countryCode}</span>
                       <div className="price-bar-track">
                         <div className="price-bar" style={{ width: `${Math.max(barPct, 2)}%` }} />
                       </div>

@@ -21,19 +21,39 @@ const DISEASE_CATS = [
 
 type DiseaseCat = typeof DISEASE_CATS[number]['key'];
 
-function getDiseaseCategory(drugClass: string): DiseaseCat {
-  const c = (drugClass || '').toLowerCase();
-  if (/oncol|cancer|tumor|leukemi|lymphom|carcinoma|melanom|immunother|checkpoint|pembroliz|nivolum|trastuz|kinase inhib|myelom|sarcoma/.test(c)) return 'oncology';
-  if (/cardio|hypertens|heart fail|lipid|statin|cholesterol|angina|arrhythm|anticoagul|thrombos|atrial|venous/.test(c)) return 'cardiovascular';
-  if (/diabet|insulin|glucose|sglt|glp-1|glp1|metform|hba1c|obesity|weight/.test(c)) return 'diabetes';
-  if (/hiv|antiretro|aids|integrase|protease inhib|nrti|nnrti|cabotegravir/.test(c)) return 'hiv';
-  if (/tuberc|malaria|hepatit|anti-infect|antibiotic|antimicro|antivir|antifung|pneumon|sepsis/.test(c)) return 'infectious';
-  if (/respir|asthma|copd|pulmon|broncho|inhaled|lung/.test(c)) return 'respiratory';
-  if (/neuro|epilep|alzheimer|parkinson|multiple sclerosis|\bms\b|seizure|dementia/.test(c)) return 'neurology';
-  if (/psych|mental|depress|anxiety|bipolar|schizo|antidepres|adhd/.test(c)) return 'mental-health';
-  if (/autoimmun|rheuma|arthrit|inflamm|\btnf\b|interleukin|jak inhib|psoriasis|crohn|colitis/.test(c)) return 'autoimmune';
-  if (/rare|orphan|genetic|enzyme replac|lysosom|muscular dystrophy|cystic fibrosis/.test(c)) return 'rare';
+function getDiseaseCategory(text: string): DiseaseCat {
+  const c = (text || '').toLowerCase();
+  // Drug-class / indication text matching
+  if (/oncol|cancer|tumor|leukemi|lymphom|carcinoma|melanom|immunother|checkpoint|pembroliz|nivolum|trastuz|kinase inhib|myelom|sarcoma|antineoplast|cytotox|pd-1|pd-l1|her2|bcr.abl/.test(c)) return 'oncology';
+  if (/cardio|hypertens|heart fail|lipid|statin|cholesterol|angina|arrhythm|anticoagul|thrombos|atrial|venous|coronary|myocard|factor xa|thrombin inhib/.test(c)) return 'cardiovascular';
+  if (/diabet|insulin|glucose|sglt|glp-1|glp1|metform|hba1c|obesity|weight loss|glucagon.like|cotransporter|dipeptidyl/.test(c)) return 'diabetes';
+  if (/hiv|antiretro|aids|integrase|protease inhib|nrti|nnrti|cabotegravir|reverse transcriptase/.test(c)) return 'hiv';
+  if (/tuberc|malaria|hepatit|anti-infect|antibiotic|antimicro|antivir|antifung|pneumon|sepsis|bacterial|viral infect/.test(c)) return 'infectious';
+  if (/respir|asthma|copd|pulmon|broncho|inhaled|lung|airway|bronchodilat/.test(c)) return 'respiratory';
+  if (/neuro|epilep|alzheimer|parkinson|multiple sclerosis|seizure|dementia|amyloid/.test(c)) return 'neurology';
+  if (/psych|mental|depress|anxiety|bipolar|schizo|antidepres|adhd|serotonin reuptake/.test(c)) return 'mental-health';
+  if (/autoimmun|rheuma|arthrit|inflamm|tnf.alpha|interleukin|jak inhib|psoriasis|crohn|colitis|il-[0-9]/.test(c)) return 'autoimmune';
+  if (/rare|orphan|genetic|enzyme replac|lysosom|muscular dystrophy|cystic fibrosis|spinal muscular/.test(c)) return 'rare';
   if (/matern|obstet|oxytocin|eclampsia|prenatal|postpart/.test(c)) return 'maternal';
+
+  // INN suffix-based classification (works even when drug_class is empty)
+  // Pharmaceutical naming conventions give reliable class signals from the INN itself
+  if (/glutide$|natide$/.test(c))       return 'diabetes';    // GLP-1 agonists: semaglutide, liraglutide
+  if (/flozin$/.test(c))                return 'diabetes';    // SGLT2 inhibitors: dapagliflozin, empagliflozin
+  if (/gliptin$/.test(c))               return 'diabetes';    // DPP-4 inhibitors: sitagliptin
+  if (/tinib$|rafenib$|ciclib$/.test(c)) return 'oncology';   // kinase inhibitors
+  if (/mab$|mumab$|zumab$|ximab$/.test(c)) return 'oncology'; // monoclonal antibodies (mostly oncology)
+  if (/lukast$|sterol$|terol$/.test(c)) return 'respiratory'; // leukotrienes, bronchodilators
+  if (/parin$|xaban$|gatran$/.test(c))  return 'cardiovascular'; // anticoagulants
+  if (/statin$/.test(c))                return 'cardiovascular'; // statins
+  if (/sartan$|pril$/.test(c))          return 'cardiovascular'; // ARBs, ACE inhibitors
+  if (/vir$|ciclovir$|navir$/.test(c))  return 'infectious';  // antivirals
+  if (/cillin$|mycin$|cycline$|oxacin$/.test(c)) return 'infectious'; // antibiotics
+  if (/mab$/.test(c)) {
+    // Remaining -mab (not oncology-flagged above) → autoimmune
+    return 'autoimmune';
+  }
+
   return 'all';
 }
 
@@ -59,10 +79,10 @@ export default function NewDrugs() {
       if (filter === 'lmic' && !hasLMIC) return false;
       if (filter === 'hic-only' && (hasLMIC || countries.length === 0)) return false;
     }
-    // disease filter
+    // disease filter — check drug_class, indication text, and INN suffix
     if (disease !== 'all') {
-      const cat = getDiseaseCategory(drug.drug_class ?? '');
-      if (cat !== disease && getDiseaseCategory(drug.indication ?? '') !== disease) return false;
+      const matchesCat = (s: string) => getDiseaseCategory(s) === disease;
+      if (!matchesCat(drug.drug_class ?? '') && !matchesCat(drug.indication ?? '') && !matchesCat(drug.inn ?? '')) return false;
     }
     return true;
   });
@@ -133,15 +153,24 @@ export default function NewDrugs() {
               Filter by condition
             </p>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-              {DISEASE_CATS.map(cat => (
-                <button
-                  key={cat.key}
-                  className={`btn btn-sm ${disease === cat.key ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => setDisease(cat.key)}
-                >
-                  {cat.label}
-                </button>
-              ))}
+              {DISEASE_CATS.map(cat => {
+                const catCount = cat.key === 'all' ? drugs.length : drugs.filter(d => {
+                  const dc = getDiseaseCategory(d.drug_class ?? '') ;
+                  const di = getDiseaseCategory(d.indication ?? '');
+                  const inn = getDiseaseCategory(d.inn ?? '');
+                  return dc === cat.key || di === cat.key || inn === cat.key;
+                }).length;
+                return (
+                  <button
+                    key={cat.key}
+                    className={`btn btn-sm ${disease === cat.key ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setDisease(cat.key)}
+                    style={{ opacity: catCount === 0 && cat.key !== 'all' ? 0.45 : 1 }}
+                  >
+                    {cat.label}{catCount > 0 && cat.key !== 'all' ? ` (${catCount})` : ''}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -171,8 +200,10 @@ export default function NewDrugs() {
               <div key={i} className="skeleton skeleton-card" style={{ height: 200 }} />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && drugs.length === 0 ? (
           <EmptyState />
+        ) : filtered.length === 0 ? (
+          <FilterEmptyState disease={disease} onReset={() => { setDisease('all'); setFilter('all'); }} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {Object.entries(
@@ -328,6 +359,24 @@ function DrugCard({ drug }: { drug: any }) {
           {countryCount} {countryCount === 1 ? 'country' : 'countries'}
         </span>
       </div>
+    </div>
+  );
+}
+
+function FilterEmptyState({ disease, onReset }: { disease: string; onReset: () => void }) {
+  const label = DISEASE_CATS.find(c => c.key === disease)?.label ?? disease;
+  return (
+    <div className="card text-center" style={{ padding: '3rem 2rem' }}>
+      <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🔍</div>
+      <h3 className="mb-2">No new drugs found for <em>{label}</em></h3>
+      <p className="text-secondary text-sm" style={{ maxWidth: 460, margin: '0.5rem auto 1.25rem' }}>
+        Our drug class tagging is still expanding. Drugs approved in the last 24 months may not yet
+        have condition data enriched — or there are genuinely no tracked approvals in this category
+        for this period.
+      </p>
+      <button className="btn btn-primary btn-sm" onClick={onReset}>
+        Show all {DISEASE_CATS[0].label}
+      </button>
     </div>
   );
 }

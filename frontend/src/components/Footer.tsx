@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Activity, Code2, ExternalLink } from 'lucide-react';
+import { Activity, Code2, ExternalLink, Heart } from 'lucide-react';
 
 const DATA_SOURCES = [
   { label: 'FDA openFDA',          href: 'https://open.fda.gov' },
@@ -118,6 +118,43 @@ export default function Footer() {
               All prices and approval dates are reference data — consult official sources before
               clinical or procurement decisions.
             </p>
+
+            {/* TekDruid attribution */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
+              padding: '0.65rem 0.75rem',
+              background: 'var(--bg-card, rgba(255,255,255,0.03))',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              marginBottom: '0.75rem',
+            }}>
+              <Heart size={13} style={{ color: 'var(--rose-400)', flexShrink: 0, marginTop: 2 }} />
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: 1.6, margin: 0 }}>
+                A community project by{' '}
+                <a
+                  href="https://tekdruid.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--blue-400)', textDecoration: 'none', fontWeight: 600 }}
+                >
+                  TekDruid
+                </a>
+                . We build technology for social good.{' '}
+                <a
+                  href="https://tekdruid.com/services/ngo-it-consulting/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: 'var(--blue-400)', textDecoration: 'none',
+                    display: 'inline-flex', alignItems: 'center', gap: '0.2rem',
+                  }}
+                >
+                  NGO IT services
+                  <ExternalLink size={10} />
+                </a>
+              </p>
+            </div>
+
             <a
               href="https://github.com"
               target="_blank"
@@ -140,7 +177,18 @@ export default function Footer() {
           alignItems: 'center', justifyContent: 'space-between',
         }}>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-            © {year} MediLens · Reference data only · Not a substitute for medical advice
+            © {year}{' '}
+            <a
+              href="https://tekdruid.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+            >
+              TekDruid
+            </a>
+            {' '}· MediLens · Reference data only · Not a substitute for medical advice
           </p>
           <div style={{ display: 'flex', gap: '1.25rem' }}>
             {[

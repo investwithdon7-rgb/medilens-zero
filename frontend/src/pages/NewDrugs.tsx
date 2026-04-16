@@ -210,11 +210,21 @@ function DrugCard({ drug }: { drug: any }) {
         </p>
       )}
 
-      {/* First approval country */}
-      {firstCountryRef && (
+      {/* First tracked authority — avoids misleading "First approved in USA" when
+          our data coverage is FDA-heavy and we lack PMDA/TGA/HC/Swissmedic sources */}
+      {drug.authority && drug.authority !== 'Unknown' && (
         <div className="flex items-center gap-2 mb-3 text-xs text-muted">
           <Globe size={12} />
-          First approved in <strong className="text-secondary">{firstCountryRef.name}</strong>
+          First tracked via{' '}
+          <strong className="text-secondary">
+            {drug.authority === 'FDA'
+              ? 'FDA · United States'
+              : drug.authority === 'EMA'
+              ? 'EMA · European Union'
+              : drug.authority === 'WHO_PQ' || drug.authority === 'WHO PQ'
+              ? 'WHO Prequalification'
+              : drug.authority}
+          </strong>
         </div>
       )}
 

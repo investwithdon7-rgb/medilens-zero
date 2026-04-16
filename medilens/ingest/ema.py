@@ -36,6 +36,29 @@ _STATUS_COLS = ["marketing authorisation status", "status", "authorisation statu
 _NAME_COLS   = ["medicine name", "product name", "name"]
 
 
+# Salt/solvate/form suffixes that appear after the true INN in EPAR common names.
+# e.g. "dapagliflozin propanediol monohydrate" → "dapagliflozin"
+_SALT_STOPWORDS = {
+    "hydrochloride", "hydrobromide", "sodium", "potassium", "calcium", "magnesium",
+    "acetate", "sulfate", "sulphate", "monohydrate", "dihydrate", "trihydrate",
+    "hemihydrate", "anhydrous", "tetrahydrate", "propanediol", "phosphate",
+    "citrate", "tartrate", "maleate", "fumarate", "succinate", "nitrate",
+    "bromide", "chloride", "iodide", "oxide", "hydroxide", "carbonate",
+    "mesylate", "tosylate", "besylate", "embonate", "pamoate", "valerate",
+    "besilate", "mesilate", "gluconate", "lactate", "malate", "stearate",
+}
+
+def _normalize_inn(raw: str) -> str:
+    """Strip salt/form suffixes so 'dapagliflozin propanediol monohydrate' → 'dapagliflozin'."""
+    parts = raw.split("_")
+    clean: list[str] = []
+    for p in parts:
+        if p.lower() in _SALT_STOPWORDS:
+            break
+        clean.append(p)
+    return "_".join(clean) if clean else raw
+
+
 def _find_col(header_row: list[str], candidates: list[str]) -> int | None:
     """Return the 0-based index of the first candidate found in header_row (case-insensitive)."""
     lower = [h.strip().lower() if h else "" for h in header_row]
@@ -108,6 +131,7 @@ def download_epar_excel() -> list[dict]:
             continue
 
         inn = str(inn_raw).strip().lower().replace("/", "_").replace(" ", "_")
+        inn = _normalize_inn(inn)   # strip salt/solvate suffixes
         if not inn:
             continue
 

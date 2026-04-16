@@ -106,10 +106,11 @@ def run():
             reg_date = None
             if approval and approval.get("approval_date"):
                 reg_date = approval.get("approval_date")
-            elif price and price.get("last_updated"):
-                reg_date = price.get("last_updated")
+            # NOTE: do NOT fall back to price.last_updated — that is the date
+            # we loaded pricing data, not the drug's approval date.
 
             if reg_date:
+                # Drug registered with a known approval date — compute lag
                 country_data[country]["drugs_approved"] += 1
                 if first_dt:
                     try:
@@ -117,18 +118,22 @@ def run():
                         lag_days   = (country_dt - first_dt).days
                         if lag_days > 730:   # >2 yr behind global first
                             country_data[country]["drugs_behind_2yr"] += 1
-                            # Store for the "registered late" list shown in the UI
                             country_data[country]["late_drugs"].append({
-                                "inn":                  drug_doc.id,
-                                "first_approved":       first_global_date,
+                                "inn":                   drug_doc.id,
+                                "first_approved":        first_global_date,
                                 "country_approval_date": reg_date[:10],
-                                "lag_days":             lag_days,
-                                "condition":            drug.get("drug_class") or "Pending Analysis",
+                                "lag_days":              lag_days,
+                                "condition":             drug.get("drug_class") or "Pending Analysis",
                             })
                     except (ValueError, TypeError):
                         pass
+            elif price:
+                # We have reference pricing for this country → drug IS available,
+                # we just lack the exact approval record. Count as approved but
+                # don't fabricate a lag date, and don't flag as a gap.
+                country_data[country]["drugs_approved"] += 1
             else:
-                # Drug NOT registered in this specific country
+                # No approval record AND no price data → genuinely unregistered
                 if gap_eligible:
                     lag_days = (now - first_dt).days  # type: ignore[union-attr]
                     country_data[country]["total_gaps"] += 1

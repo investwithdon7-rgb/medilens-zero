@@ -29,24 +29,6 @@ jobs:
         run: npm ci
         working-directory: frontend
 
-      - name: Build Orama search index
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      
-      - name: Export drug list for search index
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          pip install -r requirements.txt
-          python -m medilens.compute.build_search_index
-
-      - name: Compile Orama binary search index
-        run: |
-          cd frontend
-          node scripts/build_orama.js
-          cp ../data/search-index.orama.bin public/ 2>/dev/null || echo "No index compiled"
-
       - name: Build React app
         env:
           VITE_FIREBASE_API_KEY:            ${{ secrets.VITE_FIREBASE_API_KEY }}

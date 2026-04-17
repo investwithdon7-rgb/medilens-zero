@@ -1,12 +1,13 @@
 import { create, insert, search as oramaSearch } from '@orama/orama';
 import type { Orama, Results, TypedDocument } from '@orama/orama';
+import { getDrugListForSearch } from './firebase';
 
 // Schema for the in-browser index
 const drugSchema = {
   inn:        'string',
   brand_names:'string',
   drug_class: 'string',
-  conditions: 'string',
+  indication: 'string',
   atc_code:   'string',
   ai_summary: 'string',
 } as const;
@@ -14,52 +15,55 @@ const drugSchema = {
 type DrugDoc = TypedDocument<Orama<typeof drugSchema>>;
 
 let searchDB: Orama<typeof drugSchema> | null = null;
+let indexBuilding = false;
+let indexReady    = false;
 
 /**
- * Load the Orama search index from Bluehost static file.
- * Falls back to a minimal in-memory index if not yet built.
+ * Build the in-browser Orama index from Firestore drug data.
+ * Called once on first search — subsequent calls use the cached index.
+ * ~200-400 Firestore reads, runs in ~1-2 seconds.
  */
 export async function loadSearchIndex(): Promise<void> {
-  if (searchDB) return;
+  if (indexReady || indexBuilding) return;
+  indexBuilding = true;
 
   try {
-    // Try to load from Bluehost
-    const baseUrl = import.meta.env.BASE_URL || '/';
-    const res = await fetch(`${baseUrl}search-index.orama.bin`, { cache: 'force-cache' });
-    if (res.ok) {
-      // When the binary index is available, restore it
-      const data = await res.arrayBuffer();
-      const { restore } = await import('@orama/plugin-data-persistence');
-      searchDB = await restore('binary', new Uint8Array(data));
-      return;
+    searchDB = await create({ schema: drugSchema });
+    const drugs = await getDrugListForSearch();
+
+    for (const drug of drugs) {
+      await insert(searchDB, {
+        inn:         drug.inn        ?? '',
+        brand_names: drug.brand_names ?? '',
+        drug_class:  drug.drug_class  ?? '',
+        indication:  drug.indication  ?? '',
+        atc_code:    drug.atc_code   ?? '',
+        ai_summary:  drug.ai_summary  ?? '',
+      });
     }
-  } catch {
-    // Fall through to empty index
+
+    indexReady = true;
+    console.info(`[MediLens] Search index built — ${drugs.length} drugs indexed.`);
+  } catch (err) {
+    console.warn('[MediLens] Search index build failed:', err);
+    // Fall back to empty index so UI doesn't crash
+    if (!searchDB) searchDB = await create({ schema: drugSchema });
+  } finally {
+    indexBuilding = false;
   }
-
-  // Create empty index (populated when real index is deployed)
-  searchDB = await create({ schema: drugSchema });
 }
 
-/** Insert a drug into the in-memory index (used during development / seeding). */
-export async function indexDrug(drug: Partial<DrugDoc>): Promise<void> {
-  if (!searchDB) await loadSearchIndex();
-  await insert(searchDB!, {
-    inn:        drug.inn        ?? '',
-    brand_names: drug.brand_names ?? '',
-    drug_class:  drug.drug_class  ?? '',
-    conditions:  drug.conditions  ?? '',
-    atc_code:    drug.atc_code   ?? '',
-    ai_summary:  drug.ai_summary  ?? '',
-  });
-}
-
-/** Search the in-browser index. Zero Firestore reads. */
+/** Search the in-browser index. Zero Firestore reads after first load. */
 export async function searchDrugs(queryText: string): Promise<Results<DrugDoc>> {
-  if (!searchDB) await loadSearchIndex();
+  if (!indexReady && !indexBuilding) {
+    await loadSearchIndex();
+  }
+  // If still building (shouldn't happen — loadSearchIndex awaits), return empty
+  if (!searchDB) return { hits: [], elapsed: { raw: 0, formatted: '0ms' }, count: 0 } as any;
+
   return oramaSearch(searchDB!, {
-    term:  queryText,
-    limit: 10,
-    properties: ['inn', 'brand_names', 'drug_class', 'conditions', 'ai_summary'],
+    term:       queryText,
+    limit:      10,
+    properties: ['inn', 'brand_names', 'drug_class', 'indication', 'ai_summary'],
   });
 }

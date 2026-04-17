@@ -77,11 +77,10 @@ export async function getCountryDashboard(countryCode: string) {
 
 // ── New drugs feed ────────────────────────────────────────────────────────────
 
-/** Fetch drugs with first global approval in the last 24 months. */
+/** Fetch drugs with first global approval in the past 3 years. */
 export async function getNewDrugsFeed(pageSize = 120) {
-  // Strict 24-month window — avoids showing old drugs as "new"
   const cutoff = new Date();
-  cutoff.setMonth(cutoff.getMonth() - 24);
+  cutoff.setFullYear(cutoff.getFullYear() - 3);
   const cutoffStr = cutoff.toISOString().slice(0, 10); // YYYY-MM-DD
 
   const col  = collection(db, 'new_drugs_feed');
@@ -93,6 +92,31 @@ export async function getNewDrugsFeed(pageSize = 120) {
   );
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ── Search index ─────────────────────────────────────────────────────────────
+
+/**
+ * Fetch all drug documents for building the in-browser search index.
+ * Returns only the fields needed for search — called once on first keystroke.
+ */
+export async function getDrugListForSearch() {
+  const col  = collection(db, 'drugs');
+  const q    = query(col, limit(500));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => {
+    const data = d.data();
+    const brands = data.brand_names ?? data.brand_names_ema ?? '';
+    return {
+      id:          d.id,
+      inn:         d.id,
+      brand_names: Array.isArray(brands) ? brands.join(', ') : String(brands),
+      drug_class:  data.drug_class ?? data.therapeutic_class ?? '',
+      indication:  data.indication ?? '',
+      atc_code:    data.atc_code ?? '',
+      ai_summary:  data.ai_summary ?? '',
+    };
+  });
 }
 
 // ── Shortage forecasts ────────────────────────────────────────────────────────

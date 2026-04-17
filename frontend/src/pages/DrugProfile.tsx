@@ -17,7 +17,12 @@ interface Drug {
   brand_names: string | string[];
   drug_class: string;
   is_essential?: boolean;
+  who_essential?: boolean;
   atc_code?: string;
+  who_eml_section_display?: string;
+  year_added_to_eml?: number;
+  drugbank_id?: string;
+  who_aware_category?: string;
   ai_summary?: string;
   ai_analytics?: {
     significance?: string;
@@ -388,9 +393,43 @@ export default function DrugProfile() {
           <p className="drug-brands">
             {Array.isArray(drug.brand_names) ? drug.brand_names.join(' · ') : drug.brand_names}
           </p>
-          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <span className="badge badge-teal">{drug.drug_class}</span>
-            {drug.is_essential && <span className="badge badge-green">✓ WHO Essential Medicine</span>}
+            {(drug.who_essential || drug.is_essential) && (
+              <span
+                className="badge badge-green"
+                title={drug.who_eml_section_display
+                  ? `WHO EML — ${drug.who_eml_section_display}${drug.year_added_to_eml ? ` · Since ${drug.year_added_to_eml}` : ''}`
+                  : 'WHO Essential Medicine'}
+              >
+                ✓ WHO Essential Medicine
+                {drug.year_added_to_eml && (
+                  <span style={{ opacity: 0.75, marginLeft: '0.3rem', fontSize: '0.7rem' }}>
+                    since {drug.year_added_to_eml}
+                  </span>
+                )}
+              </span>
+            )}
+            {drug.who_aware_category && (
+              <span
+                className={`badge ${
+                  drug.who_aware_category === 'Access'  ? 'badge-green'  :
+                  drug.who_aware_category === 'Watch'   ? 'badge-amber'  : 'badge-red'
+                }`}
+                title={`WHO AWaRe: ${drug.who_aware_category} — ${
+                  drug.who_aware_category === 'Access'  ? 'First-line antibiotic for common infections' :
+                  drug.who_aware_category === 'Watch'   ? 'Use only for specific indications (stewardship priority)' :
+                                                          'Last-resort antibiotic — reserve for multidrug-resistant infections'
+                }`}
+              >
+                AWaRe: {drug.who_aware_category}
+              </span>
+            )}
+            {drug.atc_code && (
+              <span className="badge badge-outline" title="ATC Classification Code" style={{ fontFamily: 'monospace', fontSize: '0.72rem' }}>
+                {drug.atc_code}
+              </span>
+            )}
           </div>
         </div>
       </div>

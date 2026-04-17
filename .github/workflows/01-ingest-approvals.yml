@@ -52,6 +52,11 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: python -m medilens.ingest.pricing
 
+      - name: Seed Drug Details (Originator, Indication, Formulations)
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.drug_details
+
       - name: Seed Curated Approval Records
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

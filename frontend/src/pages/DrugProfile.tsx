@@ -23,6 +23,13 @@ interface Drug {
   year_added_to_eml?: number;
   drugbank_id?: string;
   who_aware_category?: string;
+  // Quick-facts fields (from drug_details.py seeder)
+  originator_company?: string;
+  indication?: string;
+  patent_status?: 'originator' | 'generic_available' | 'biosimilar_available';
+  patent_expired_year?: number;
+  generic_manufacturers?: string[];
+  formulations?: { form: string; strength: string; route: string }[];
   ai_summary?: string;
   ai_analytics?: {
     significance?: string;
@@ -52,6 +59,40 @@ interface Price {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const REGIONS: Record<string, string[]> = {
+  'North America': ['USA', 'CAN'],
+  'Europe':        ['GBR', 'DEU', 'FRA', 'ITA', 'ESP', 'AUT', 'BEL', 'NLD', 'POL', 'SWE', 'DNK', 'FIN', 'GRC', 'PRT'],
+  'Asia-Pacific':  ['JPN', 'AUS', 'IND', 'LKA', 'BGD', 'PAK'],
+  'Latin America': ['BRA'],
+  'Africa':        ['ZAF', 'KEN', 'NGA'],
+};
+
+function buildRegionalSummary(prices: Price[]): { region: string; avg: number; min: number; max: number; count: number }[] {
+  const result = [];
+  for (const [region, codes] of Object.entries(REGIONS)) {
+    const regionPrices = prices
+      .filter(p => codes.includes(p.id || p.country))
+      .map(p => toUSD(p.price, p.currency))
+      .filter(v => v > 0);
+    if (regionPrices.length === 0) continue;
+    const avg = regionPrices.reduce((a, b) => a + b, 0) / regionPrices.length;
+    result.push({
+      region,
+      avg,
+      min: Math.min(...regionPrices),
+      max: Math.max(...regionPrices),
+      count: regionPrices.length,
+    });
+  }
+  return result.sort((a, b) => b.avg - a.avg);
+}
+
+function fmtUSD(v: number): string {
+  if (v >= 1000) return '$' + v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  if (v >= 1)    return '$' + v.toFixed(2);
+  return '$' + v.toFixed(2);
+}
 
 function lagColor(days: number | null): string {
   if (days === 0)                           return 'var(--green-400)';
@@ -89,6 +130,112 @@ function buildAdoptionCurve(approvals: Approval[]): { year: number; count: numbe
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+/** Quick Facts card — originator, indication, formulations, patent status */
+function QuickFacts({ drug, firstApproval }: { drug: Drug; firstApproval: Approval | undefined }) {
+  const patentBadge = {
+    originator:          { cls: 'badge-red',   label: 'Under patent' },
+    generic_available:   { cls: 'badge-green', label: 'Generic available' },
+    biosimilar_available:{ cls: 'badge-teal',  label: 'Biosimilar available' },
+  }[drug.patent_status ?? ''] ?? null;
+
+  const hasAnyFact = drug.originator_company || drug.indication || drug.formulations?.length || firstApproval?.approval_date;
+  if (!hasAnyFact) return null;
+
+  return (
+    <div className="card card-lg mb-4" style={{ marginBottom: '1.5rem' }}>
+      <div className="flex items-center gap-2 mb-4">
+        <Shield size={18} style={{ color: 'var(--blue-400)' }} />
+        <h3>Drug Overview</h3>
+        {patentBadge && <span className={`badge ${patentBadge.cls}`} style={{ marginLeft: 'auto' }}>{patentBadge.label}</span>}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+
+        {/* What it treats */}
+        {drug.indication && (
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+              Treats / Indication
+            </div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>{drug.indication}</div>
+          </div>
+        )}
+
+        {/* Originator pharma */}
+        {drug.originator_company && (
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+              Originator Company
+            </div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>{drug.originator_company}</div>
+            {drug.patent_expired_year && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                {drug.patent_status === 'originator'
+                  ? `Patent expires ~${drug.patent_expired_year}`
+                  : `Patent expired ~${drug.patent_expired_year}`}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* First global approval */}
+        {firstApproval?.approval_date && (
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+              First Global Approval
+            </div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+              {new Date(firstApproval.approval_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+              {COUNTRY_DATA[firstApproval.country]?.name ?? firstApproval.country} · {firstApproval.authority}
+            </div>
+          </div>
+        )}
+
+        {/* Generic manufacturers */}
+        {drug.generic_manufacturers && drug.generic_manufacturers.length > 0 && (
+          <div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+              {drug.patent_status === 'biosimilar_available' ? 'Biosimilar Makers' : 'Generic Makers'}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+              {drug.generic_manufacturers.map(m => (
+                <span key={m} className="badge badge-outline" style={{ fontSize: '0.72rem' }}>{m}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Formulations */}
+      {drug.formulations && drug.formulations.length > 0 && (
+        <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
+            Available Formulations
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {drug.formulations.map((f, i) => (
+              <div key={i} style={{
+                padding: '0.4rem 0.75rem', borderRadius: 6,
+                background: 'var(--bg-glass)', border: '1px solid var(--border)',
+                fontSize: '0.8rem', color: 'var(--text-secondary)',
+              }}>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{f.form}</span>
+                <span style={{ color: 'var(--text-muted)', margin: '0 0.3rem' }}>·</span>
+                {f.strength}
+                <span style={{ color: 'var(--text-muted)', margin: '0 0.3rem' }}>·</span>
+                {f.route}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Population Without Access Banner */
 function AccessGapBanner({ approvals }: { approvals: Approval[] }) {
@@ -256,6 +403,43 @@ function AffordabilityTag({ price, currency, countryCode }: { price: number; cur
   else if (days > 5)   { cls = 'badge-teal';  }
 
   return <span className={`badge ${cls} text-xs`}>{label}</span>;
+}
+
+/** Regional Price Summary — average price by world region */
+function RegionalPriceSummary({ prices }: { prices: Price[] }) {
+  const regions = buildRegionalSummary(prices);
+  if (regions.length < 2) return null;
+
+  const globalMax = Math.max(...regions.map(r => r.avg));
+
+  return (
+    <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+      <h4 style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.9rem' }}>
+        Average Price by Region (USD equivalent)
+      </h4>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {regions.map(r => {
+          const barPct = globalMax > 0 ? (r.avg / globalMax) * 100 : 0;
+          return (
+            <div key={r.region} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 80px', gap: '0.75rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{r.region}</span>
+              <div style={{ background: 'var(--bg-glass)', borderRadius: 4, overflow: 'hidden', height: 6 }}>
+                <div style={{ width: `${Math.max(barPct, 2)}%`, height: '100%', background: 'var(--blue-400)', borderRadius: 4 }} />
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                  {fmtUSD(r.avg)}
+                </span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block' }}>
+                  {r.count} {r.count === 1 ? 'country' : 'countries'}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 /** Gap Severity Score — only meaningful when we have ≥3 confirmed approvals */
@@ -436,6 +620,9 @@ export default function DrugProfile() {
 
       <div className="container section">
 
+        {/* Quick Facts — indication, originator, first approval, formulations */}
+        <QuickFacts drug={drug} firstApproval={firstApproval} />
+
         {/* Population Without Access Banner */}
         <AccessGapBanner approvals={approvals} />
 
@@ -470,7 +657,11 @@ export default function DrugProfile() {
                 : '—'}
             </div>
             <div className="stat-label">First global approval</div>
-            <div className="stat-delta">{firstApproval?.authority ?? '—'}</div>
+            <div className="stat-delta">
+              {firstApproval
+                ? `${COUNTRY_DATA[firstApproval.country]?.name ?? firstApproval.country} · ${firstApproval.authority}`
+                : '—'}
+            </div>
           </div>
           <GapSeverityScore approvals={approvals} />
         </div>
@@ -678,6 +869,7 @@ export default function DrugProfile() {
                   );
                 })}
               </div>
+              <RegionalPriceSummary prices={prices} />
               <p className="text-xs text-muted mt-4">
                 "Days wages" = cost as a multiple of local daily minimum wage (ILO 2024).
                 Reference prices: WHO GPRM, UNICEF, MSF. Approximate USD conversion used.

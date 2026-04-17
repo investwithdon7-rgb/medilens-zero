@@ -61,7 +61,7 @@ def run():
         # Update drug-level summary
         now        = datetime.utcnow()
         days_since = (now - first_dt).days
-        is_recent  = days_since < 730   # first global approval within last 24 months
+        is_recent  = days_since < 1095  # first global approval within last 3 years
 
         drug_doc.reference.update({
             "first_global_approval":  first_dt.isoformat()[:10],
@@ -71,11 +71,15 @@ def run():
         })
 
         # ── New Drug Radar feed ────────────────────────────────────────────────
-        # Only include drugs whose FIRST global approval is within 24 months.
+        # Only include drugs whose FIRST global approval is within 3 years.
         # countries_registered = countries with a CONFIRMED approval_date.
         # We intentionally do NOT infer absent LMIC registrations from sparse
         # data — the UI notes coverage limitations to avoid false "HIC-only" bias.
-        if is_recent:
+        if not is_recent:
+            # Clean up stale feed documents so outdated drugs don't persist
+            feed_ref = db.collection("new_drugs_feed").document(inn)
+            feed_ref.delete()
+        elif is_recent:
             confirmed_countries = [d[1] for d in dates]  # only real approvals
 
             # Count by income tier using known-reliable country codes only
@@ -101,7 +105,7 @@ def run():
                 "drug_class":            drug.get("drug_class") or drug.get("therapeutic_class") or "",
                 "indication":            drug.get("indication") or drug.get("drug_class") or "",
                 "approval_type":         drug.get("approval_type") or "Novel drug",
-                "is_essential":          drug.get("is_essential", False),
+                "is_essential":          bool(drug.get("who_essential") or drug.get("is_essential", False)),
                 "atc_code":              drug.get("atc_code", ""),
                 "ai_summary":            drug.get("ai_summary", ""),
                 "ai_analytics":          drug.get("ai_analytics", None),

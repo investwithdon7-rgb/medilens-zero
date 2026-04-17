@@ -31,14 +31,3 @@ jobs:
           GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
         run: python -m medilens.compute.ai_enricher
 
-      - name: Compute approval lag
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: python -m medilens.compute.lag_calculator
-
-      - name: Generate country dashboards
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          GEMINI_API_KEY:        ${{ secrets.GEMINI_API_KEY }}
-        run: python -m medilens.compute.country_dashboards
-

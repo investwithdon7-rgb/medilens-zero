@@ -8,9 +8,11 @@ on:
   workflow_dispatch:        # Manual trigger
 
 jobs:
-  ingest:
+  # ── Job 1: Fast curated seeds (no web scraping) ───────────────────────────
+  # Runs in ~10 min. Seeds approval records, pricing, drug details.
+  ingest-seeds:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -30,6 +32,50 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: python -m medilens.ingest.major_diseases
 
+      - name: Seed Drug Details (Originator, Indication, Formulations)
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.drug_details
+
+      - name: Seed Curated Approval Records
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.approval_seeds
+
+      - name: Ingest PMDA Japan Approvals
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.pmda
+
+      - name: Ingest CDSCO India Approvals
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.cdsco
+
+      - name: Run Global Reference Pricing ingestor
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.ingest.pricing
+
+  # ── Job 2: Web scrapers (FDA API + EMA EPAR + WHO PQ + WHO EML) ───────────
+  # Runs in ~40 min. Network-heavy; isolated so a slow scraper doesn't block seeds.
+  ingest-scrapers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
       - name: Run FDA ingestor
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -47,35 +93,30 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: python -m medilens.ingest.who_preq
 
-      - name: Run Global Reference Pricing ingestor
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: python -m medilens.ingest.pricing
-
-      - name: Seed Drug Details (Originator, Indication, Formulations)
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: python -m medilens.ingest.drug_details
-
-      - name: Seed Curated Approval Records
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: python -m medilens.ingest.approval_seeds
-
       - name: Enrich with WHO Essential Medicines List
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: python -m medilens.ingest.who_eml
 
-      - name: Ingest PMDA Japan Approvals
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: python -m medilens.ingest.pmda
+  # ── Job 3: Compute (runs after both ingest jobs finish) ───────────────────
+  # Reads all approval data and builds derived collections.
+  compute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [ingest-seeds, ingest-scrapers]
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-      - name: Ingest CDSCO India Approvals
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: python -m medilens.ingest.cdsco
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Compute Approval Lags
         env:

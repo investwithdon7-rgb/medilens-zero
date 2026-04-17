@@ -115,7 +115,7 @@ export default function NewDrugs() {
             <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)' }}>New Drug Radar</h1>
           </div>
           <p className="text-secondary">
-            Drugs approved globally in the past 24 months — see which reached your country and which didn't.
+            Drugs with first global approval in the past 3 years — see which reached your country and which didn't.
           </p>
         </div>
       </div>
@@ -128,7 +128,7 @@ export default function NewDrugs() {
             <TrendingUp size={22} />
             <div>
               <div className="access-gap-headline">
-                <strong>{drugs.length}</strong> drugs with first global approval in the last 24 months tracked in our database.
+                <strong>{drugs.length}</strong> drugs with first global approval in the past 3 years tracked in our database.
                 {licOnly > 0 && (
                   <> Of those with multi-country data, <strong style={{ color: 'var(--amber-400)' }}>{licOnly}</strong> show <strong>registration only in high-income countries</strong> so far.</>
                 )}
@@ -302,20 +302,29 @@ function DrugCard({ drug }: { drug: any }) {
         </p>
       )}
 
-      {/* First tracked authority — avoids misleading "First approved in USA" when
-          our data coverage is FDA-heavy and we lack PMDA/TGA/HC/Swissmedic sources */}
-      {drug.authority && drug.authority !== 'Unknown' && (
+      {/* First approval country */}
+      {(drug.first_approval_country || drug.authority) && drug.authority !== 'Unknown' && (
         <div className="flex items-center gap-2 mb-3 text-xs text-muted">
           <Globe size={12} />
-          First tracked via{' '}
+          First approved in{' '}
           <strong className="text-secondary">
-            {drug.authority === 'FDA'
-              ? 'FDA · United States'
-              : drug.authority === 'EMA'
-              ? 'EMA · European Union'
-              : drug.authority === 'WHO_PQ' || drug.authority === 'WHO PQ'
-              ? 'WHO Prequalification'
-              : drug.authority}
+            {(() => {
+              const code = drug.first_approval_country;
+              const FLAGS: Record<string, string> = {
+                USA: '🇺🇸', GBR: '🇬🇧', DEU: '🇩🇪', FRA: '🇫🇷', JPN: '🇯🇵',
+                IND: '🇮🇳', AUS: '🇦🇺', CAN: '🇨🇦', CHE: '🇨🇭', NLD: '🇳🇱',
+                BRA: '🇧🇷', ZAF: '🇿🇦', KEN: '🇰🇪', SWE: '🇸🇪', ITA: '🇮🇹',
+                ESP: '🇪🇸', BEL: '🇧🇪', AUT: '🇦🇹', DNK: '🇩🇰', SGP: '🇸🇬',
+              };
+              if (code && COUNTRY_DATA[code]) {
+                return `${FLAGS[code] ?? '🌍'} ${COUNTRY_DATA[code].name}`;
+              }
+              // Fallback to authority label
+              if (drug.authority === 'FDA') return '🇺🇸 United States';
+              if (drug.authority === 'EMA') return '🇪🇺 European Union';
+              if (drug.authority === 'WHO_PQ' || drug.authority === 'WHO PQ') return '🌍 WHO Prequalification';
+              return drug.authority ?? '—';
+            })()}
           </strong>
         </div>
       )}
@@ -370,7 +379,7 @@ function FilterEmptyState({ disease, onReset }: { disease: string; onReset: () =
       <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🔍</div>
       <h3 className="mb-2">No new drugs found for <em>{label}</em></h3>
       <p className="text-secondary text-sm" style={{ maxWidth: 460, margin: '0.5rem auto 1.25rem' }}>
-        Our drug class tagging is still expanding. Drugs approved in the last 24 months may not yet
+        Our drug class tagging is still expanding. Drugs approved in the past 3 years may not yet
         have condition data enriched — or there are genuinely no tracked approvals in this category
         for this period.
       </p>

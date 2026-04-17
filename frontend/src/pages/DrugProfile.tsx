@@ -7,7 +7,7 @@ import {
 import { getDrug, getDrugApprovals, getDrugPrices } from '../lib/firebase';
 import { callAiProxy, type AiTask } from '../lib/ai-proxy';
 import {
-  COUNTRY_DATA, toUSD, getPopulationWithoutDrug, affordabilityDays,
+  COUNTRY_DATA, getPopulationWithoutDrug, affordabilityDays,
 } from '../lib/reference-data';
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
@@ -30,6 +30,7 @@ interface Drug {
   patent_expired_year?: number;
   generic_manufacturers?: string[];
   formulations?: { form: string; strength: string; route: string }[];
+  who_formulations?: string[];  // raw strings from WHO EML scraper (fallback)
   ai_summary?: string;
   ai_analytics?: {
     significance?: string;
@@ -52,8 +53,9 @@ interface Approval {
 interface Price {
   country: string;
   id?: string;
-  price: number;
-  currency: string;
+  price: number;       // already converted to USD by pricing.py
+  price_orig?: number; // original price in local currency (for display)
+  currency: string;    // original currency code (for display label)
   unit: string;
   source: string;
 }
@@ -73,7 +75,7 @@ function buildRegionalSummary(prices: Price[]): { region: string; avg: number; m
   for (const [region, codes] of Object.entries(REGIONS)) {
     const regionPrices = prices
       .filter(p => codes.includes(p.id || p.country))
-      .map(p => toUSD(p.price, p.currency))
+      .map(p => p.price)  // already USD
       .filter(v => v > 0);
     if (regionPrices.length === 0) continue;
     const avg = regionPrices.reduce((a, b) => a + b, 0) / regionPrices.length;
@@ -140,7 +142,7 @@ function QuickFacts({ drug, firstApproval }: { drug: Drug; firstApproval: Approv
   } as const;
   const patentBadge = drug.patent_status ? patentBadgeMap[drug.patent_status] ?? null : null;
 
-  const hasAnyFact = drug.originator_company || drug.indication || drug.formulations?.length || firstApproval?.approval_date;
+  const hasAnyFact = drug.originator_company || drug.indication || drug.formulations?.length || drug.who_formulations?.length || firstApproval?.approval_date;
   if (!hasAnyFact) return null;
 
   return (
@@ -211,8 +213,8 @@ function QuickFacts({ drug, firstApproval }: { drug: Drug; firstApproval: Approv
 
       </div>
 
-      {/* Formulations */}
-      {drug.formulations && drug.formulations.length > 0 && (
+      {/* Formulations — structured (drug_details.py) takes priority over WHO EML raw strings */}
+      {(drug.formulations && drug.formulations.length > 0) ? (
         <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
           <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
             Available Formulations
@@ -233,7 +235,24 @@ function QuickFacts({ drug, firstApproval }: { drug: Drug; firstApproval: Approv
             ))}
           </div>
         </div>
-      )}
+      ) : drug.who_formulations && drug.who_formulations.length > 0 ? (
+        <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
+            Available Formulations <span style={{ fontWeight: 400, textTransform: 'none', fontSize: '0.65rem' }}>(WHO EML)</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {drug.who_formulations.map((f, i) => (
+              <div key={i} style={{
+                padding: '0.4rem 0.75rem', borderRadius: 6,
+                background: 'var(--bg-glass)', border: '1px solid var(--border)',
+                fontSize: '0.8rem', color: 'var(--text-secondary)',
+              }}>
+                {f}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -391,9 +410,9 @@ function AdoptionVelocity({ approvals }: { approvals: Approval[] }) {
 }
 
 /** Affordability indicator for a single price row */
-function AffordabilityTag({ price, currency, countryCode }: { price: number; currency: string; countryCode: string }) {
-  const usd = toUSD(price, currency);
-  const days = affordabilityDays(usd, countryCode);
+function AffordabilityTag({ price, countryCode }: { price: number; countryCode: string }) {
+  // price is already in USD (pricing.py converts before storing)
+  const days = affordabilityDays(price, countryCode);
   const ref  = COUNTRY_DATA[countryCode];
   if (!ref || days === 0) return null;
 
@@ -556,13 +575,10 @@ export default function DrugProfile() {
   // With sparse data, the absence is a data gap, not a confirmed registration gap.
   const hasGoodCoverage  = confirmedApprovals.length >= 3;
   const notRegistered    = hasGoodCoverage ? pendingApprovals.length : 0;
-  const pricesSorted   = [...prices].sort((a, b) => {
-    const usdA = toUSD(a.price, a.currency);
-    const usdB = toUSD(b.price, b.currency);
-    return usdB - usdA;
-  });
-  const maxPriceUSD    = pricesSorted.length > 0 ? toUSD(pricesSorted[0].price, pricesSorted[0].currency) : 0;
-  const minPriceUSD    = pricesSorted.length > 0 ? toUSD(pricesSorted[pricesSorted.length - 1].price, pricesSorted[pricesSorted.length - 1].currency) : 0;
+  // price is already USD (converted by pricing.py) — no toUSD() needed
+  const pricesSorted   = [...prices].sort((a, b) => b.price - a.price);
+  const maxPriceUSD    = pricesSorted.length > 0 ? pricesSorted[0].price : 0;
+  const minPriceUSD    = pricesSorted.length > 0 ? pricesSorted[pricesSorted.length - 1].price : 0;
   const priceRatio     = minPriceUSD > 0 ? Math.round(maxPriceUSD / minPriceUSD) : 0;
 
   return (
@@ -838,33 +854,102 @@ export default function DrugProfile() {
 
           {prices.length > 0 ? (
             <>
-              {priceRatio >= 10 && (
+              {/* Price gap summary — always shown when we have ≥2 countries */}
+              {pricesSorted.length >= 2 && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto 1fr',
+                  gap: '0.5rem',
+                  alignItems: 'center',
+                  background: 'var(--bg-glass)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                  padding: '0.9rem 1.1rem',
+                  marginBottom: '1.25rem',
+                }}>
+                  {/* Cheapest */}
+                  <div>
+                    <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 2 }}>Lowest price</div>
+                    <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--green-400)', fontFamily: 'monospace' }}>
+                      {fmtUSD(minPriceUSD)}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      {COUNTRY_DATA[pricesSorted[pricesSorted.length - 1].id || pricesSorted[pricesSorted.length - 1].country]?.name
+                        ?? (pricesSorted[pricesSorted.length - 1].id || pricesSorted[pricesSorted.length - 1].country)}
+                    </div>
+                  </div>
+                  {/* Ratio */}
+                  <div style={{ textAlign: 'center', padding: '0 0.5rem' }}>
+                    {priceRatio > 1 && (
+                      <>
+                        <div style={{
+                          fontSize: '1.4rem',
+                          fontWeight: 800,
+                          color: priceRatio >= 50 ? 'var(--red-400)' : priceRatio >= 10 ? 'var(--amber-400)' : 'var(--teal-400)',
+                          fontFamily: 'monospace',
+                          lineHeight: 1,
+                        }}>{priceRatio}×</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 2 }}>price gap</div>
+                      </>
+                    )}
+                  </div>
+                  {/* Most expensive */}
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 2 }}>Highest price</div>
+                    <div style={{ fontWeight: 700, fontSize: '1.1rem', color: priceRatio >= 10 ? 'var(--red-400)' : 'var(--amber-400)', fontFamily: 'monospace' }}>
+                      {fmtUSD(maxPriceUSD)}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      {COUNTRY_DATA[pricesSorted[0].id || pricesSorted[0].country]?.name
+                        ?? (pricesSorted[0].id || pricesSorted[0].country)}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {priceRatio >= 5 && (
                 <div className="financial-toxicity-alert mb-4">
                   <TrendingDown size={16} />
                   <span>
-                    <strong>Financial Toxicity Alert:</strong> Highest price is {priceRatio}× the lowest.
-                    The same drug costs {pricesSorted[0].currency} {pricesSorted[0].price.toFixed(2)} in {COUNTRY_DATA[pricesSorted[0].country]?.name ?? pricesSorted[0].country}
-                    {' '}vs {pricesSorted[pricesSorted.length - 1].currency} {pricesSorted[pricesSorted.length - 1].price.toFixed(2)} in {COUNTRY_DATA[pricesSorted[pricesSorted.length - 1].country]?.name ?? pricesSorted[pricesSorted.length - 1].country}.
+                    <strong>{priceRatio >= 50 ? 'Extreme Price Inequity:' : priceRatio >= 10 ? 'Financial Toxicity Alert:' : 'Significant Price Gap:'}</strong>{' '}
+                    {COUNTRY_DATA[pricesSorted[0].id || pricesSorted[0].country]?.name ?? pricesSorted[0].country} charges {priceRatio}× more
+                    ({fmtUSD(maxPriceUSD)}) than {COUNTRY_DATA[pricesSorted[pricesSorted.length - 1].id || pricesSorted[pricesSorted.length - 1].country]?.name ?? pricesSorted[pricesSorted.length - 1].country} ({fmtUSD(minPriceUSD)})
+                    for the same drug.
                   </span>
                 </div>
               )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {pricesSorted.map(p => {
+                {pricesSorted.map((p, idx) => {
                   const countryCode = p.id || p.country;
-                  const usd = toUSD(p.price, p.currency);
-                  const barPct = maxPriceUSD > 0 ? (usd / maxPriceUSD) * 100 : 0;
+                  // p.price is already USD; p.price_orig is local currency
+                  const barPct = maxPriceUSD > 0 ? (p.price / maxPriceUSD) * 100 : 0;
+                  const isCheapest = idx === pricesSorted.length - 1 && pricesSorted.length >= 2;
+                  const isMostExp  = idx === 0 && pricesSorted.length >= 2;
+                  const displayOrig = p.price_orig != null
+                    ? `${p.currency} ${p.price_orig.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                    : null;
                   return (
-                    <div key={countryCode} className="price-row">
-                      <span className="price-country font-bold text-sm">{COUNTRY_DATA[countryCode]?.name ?? countryCode}</span>
+                    <div key={countryCode} className="price-row" style={isCheapest ? { background: 'rgba(52,211,153,0.05)', borderRadius: 6 } : isMostExp ? { background: 'rgba(248,113,113,0.04)', borderRadius: 6 } : undefined}>
+                      <span className="price-country font-bold text-sm">
+                        {isCheapest && <span style={{ color: 'var(--green-400)', marginRight: 4 }}>↓</span>}
+                        {isMostExp  && <span style={{ color: 'var(--red-400)',   marginRight: 4 }}>↑</span>}
+                        {COUNTRY_DATA[countryCode]?.name ?? countryCode}
+                      </span>
                       <div className="price-bar-track">
-                        <div className="price-bar" style={{ width: `${Math.max(barPct, 2)}%` }} />
+                        <div className="price-bar" style={{
+                          width: `${Math.max(barPct, 2)}%`,
+                          background: isCheapest ? 'var(--green-400)' : isMostExp ? 'var(--red-400)' : 'var(--teal-400)',
+                        }} />
                       </div>
                       <div className="price-value">
-                        <span className="text-teal font-mono">{p.currency} {p.price.toFixed(2)}</span>
+                        {/* Show original local-currency price if available, else USD */}
+                        <span className="text-teal font-mono">{displayOrig ?? fmtUSD(p.price)}</span>
+                        {displayOrig && <span className="text-xs text-muted" style={{ display: 'block' }}>{fmtUSD(p.price)}</span>}
                         <span className="text-xs text-muted">{p.unit}</span>
                       </div>
                       <div className="price-affordability">
-                        <AffordabilityTag price={p.price} currency={p.currency} countryCode={countryCode} />
+                        <AffordabilityTag price={p.price} countryCode={countryCode} />
                       </div>
                     </div>
                   );
@@ -873,7 +958,8 @@ export default function DrugProfile() {
               <RegionalPriceSummary prices={prices} />
               <p className="text-xs text-muted mt-4">
                 "Days wages" = cost as a multiple of local daily minimum wage (ILO 2024).
-                Reference prices: WHO GPRM, UNICEF, MSF. Approximate USD conversion used.
+                Reference prices: WHO GPRM, NHS Drug Tariff, GoodRx, MSF, UNICEF. Approximate USD conversion used.
+                ↓ cheapest · ↑ most expensive.
               </p>
             </>
           ) : (

@@ -179,6 +179,7 @@ def scrape_medicine_page(med_id: int) -> dict | None:
         "inn":           inn,
         "inn_display":   inn_raw,
         "who_essential": True,
+        "is_essential":  True,   # mirrors who_essential for lag_calculator compatibility
         "eml_id":        med_id,
     }
 

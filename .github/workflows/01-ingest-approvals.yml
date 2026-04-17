@@ -102,7 +102,7 @@ jobs:
   # Reads all approval data and builds derived collections.
   compute:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     needs: [ingest-seeds, ingest-scrapers]
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

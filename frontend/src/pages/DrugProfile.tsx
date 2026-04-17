@@ -133,11 +133,12 @@ function buildAdoptionCurve(approvals: Approval[]): { year: number; count: numbe
 
 /** Quick Facts card — originator, indication, formulations, patent status */
 function QuickFacts({ drug, firstApproval }: { drug: Drug; firstApproval: Approval | undefined }) {
-  const patentBadge = {
-    originator:          { cls: 'badge-red',   label: 'Under patent' },
-    generic_available:   { cls: 'badge-green', label: 'Generic available' },
-    biosimilar_available:{ cls: 'badge-teal',  label: 'Biosimilar available' },
-  }[drug.patent_status ?? ''] ?? null;
+  const patentBadgeMap = {
+    originator:           { cls: 'badge-red',   label: 'Under patent' },
+    generic_available:    { cls: 'badge-green', label: 'Generic available' },
+    biosimilar_available: { cls: 'badge-teal',  label: 'Biosimilar available' },
+  } as const;
+  const patentBadge = drug.patent_status ? patentBadgeMap[drug.patent_status] ?? null : null;
 
   const hasAnyFact = drug.originator_company || drug.indication || drug.formulations?.length || firstApproval?.approval_date;
   if (!hasAnyFact) return null;

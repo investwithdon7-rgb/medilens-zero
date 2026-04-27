@@ -21,6 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+// Reject anything that isn't a POST (GET/PUT/DELETE etc.)
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST, OPTIONS');
+    die(json_encode(['error' => 'Method not allowed']));
+}
+
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
@@ -83,17 +90,26 @@ if (!in_array($task, $allowed_tasks, true)) {
 }
 $payload = $body['payload'];
 
+// ── Sanitise and length-limit all string inputs ───────────────────────────────
+// Prevents oversized prompts and strips control characters.
+function safe_str(mixed $val, int $maxLen = 120): string {
+    if (!is_string($val)) return '';
+    // Strip control characters except newline/tab; trim whitespace
+    $clean = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', trim((string)$val));
+    return mb_substr($clean, 0, $maxLen);
+}
+
 // ── Extract common fields ─────────────────────────────────────────────────────
-$drugName    = $payload['drug']    ?? $payload['inn']     ?? 'this drug';
-$country     = $payload['country'] ?? 'the target country';
-$drugClass   = $payload['drug_class']   ?? '';
-$isEssential = $payload['is_essential'] ?? false;
-$incomeClass = $payload['income_class'] ?? '';
-$approvals   = $payload['approvals']    ?? [];
-$stats       = $payload['stats']        ?? [];
-$gapData     = $payload['gap_data']     ?? null;
-$aiAnalytics = $payload['ai_analytics'] ?? null;
-$data        = $payload['data']         ?? [];
+$drugName    = safe_str($payload['drug']    ?? $payload['inn']     ?? 'this drug', 80);
+$country     = safe_str($payload['country'] ?? 'the target country', 80);
+$drugClass   = safe_str($payload['drug_class']   ?? '', 100);
+$isEssential = (bool)($payload['is_essential'] ?? false);
+$incomeClass = safe_str($payload['income_class'] ?? '', 10);
+$approvals   = is_array($payload['approvals'])    ? array_slice($payload['approvals'], 0, 50)  : [];
+$stats       = is_array($payload['stats'])        ? $payload['stats']        : [];
+$gapData     = is_array($payload['gap_data'])     ? $payload['gap_data']     : null;
+$aiAnalytics = is_array($payload['ai_analytics']) ? $payload['ai_analytics'] : null;
+$data        = is_array($payload['data'])         ? $payload['data']         : [];
 
 $totalApproved  = $data['total_approved']  ?? count(array_filter((array)$approvals, fn($a) => !empty($a['approval_date'])));
 $totalCountries = $data['total_countries'] ?? count((array)$approvals);

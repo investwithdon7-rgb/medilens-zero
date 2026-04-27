@@ -1,9 +1,27 @@
-# Prevent direct web access to the secrets file
+# ── HTTPS redirect ────────────────────────────────────────────────────────────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# ── Security headers ──────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  # API-only CSP — no HTML/JS needed, JSON responses only
+  Header always set Content-Security-Policy "default-src 'none'"
+</IfModule>
+
+# ── Block direct web access to secrets file ───────────────────────────────────
 <Files "secrets.php">
     Require all denied
 </Files>
 
-# Optimal PHP settings for AI proxy
+# ── PHP settings for AI proxy ─────────────────────────────────────────────────
 <IfModule mod_php7.c>
     php_value max_execution_time 30
     php_value memory_limit 128M

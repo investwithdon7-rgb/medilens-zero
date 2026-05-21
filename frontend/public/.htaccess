@@ -51,14 +51,26 @@
 </IfModule>
 
 # ── Cache control ─────────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+  # HTML: never cache — browsers must always fetch fresh index.html
+  # This ensures the new hashed JS/CSS filenames (from Vite builds) are picked up
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # JS/CSS/fonts: cache 1 year — Vite content-hashes filenames on every build
+  <FilesMatch "\.(js|css|woff2|woff|ttf|svg|png|jpg|jpeg|gif|ico|webp)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
 <IfModule mod_expires.c>
   ExpiresActive On
-  # HTML — no cache (SPA, always fresh)
-  ExpiresByType text/html "access plus 0 seconds"
-  # JS/CSS assets — 1 year (Vite generates hashed filenames)
-  ExpiresByType application/javascript "access plus 1 year"
-  ExpiresByType text/css "access plus 1 year"
-  # Fonts & images — 6 months
-  ExpiresByType image/svg+xml "access plus 6 months"
-  ExpiresByType font/woff2 "access plus 6 months"
+  ExpiresByType text/html                "access plus 0 seconds"
+  ExpiresByType application/javascript   "access plus 1 year"
+  ExpiresByType text/css                 "access plus 1 year"
+  ExpiresByType image/svg+xml            "access plus 6 months"
+  ExpiresByType font/woff2               "access plus 6 months"
 </IfModule>

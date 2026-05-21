@@ -9,9 +9,9 @@
   --bg-card:        rgba(20, 20, 35, 0.80);
   --bg-glass:       rgba(255, 255, 255, 0.03);
 
-  /* Borders — subtle, not glowing */
-  --border:         rgba(255, 255, 255, 0.06);
-  --border-strong:  rgba(255, 255, 255, 0.11);
+  /* Borders — visible enough to define structure */
+  --border:         rgba(255, 255, 255, 0.10);
+  --border-strong:  rgba(255, 255, 255, 0.18);
   --border-focus:   rgba(59, 130, 246, 0.50);
 
   /* Primary — clinical blue */
@@ -47,10 +47,10 @@
   --red-400:        #fb7185;
   --purple-400:     #a78bfa;
 
-  /* Text */
-  --text-primary:   #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted:     #4b5563;
+  /* Text — all values pass WCAG AA (4.5:1) against dark card/page backgrounds */
+  --text-primary:   #f1f5f9;
+  --text-secondary: #b0bfce;   /* was #94a3b8 — lifted for better card readability */
+  --text-muted:     #7e8fa3;   /* was #4b5563 (failed AA) — now ~5:1 on bg-base */
 
   /* Radius — tighter, more clinical */
   --radius-sm:      5px;
@@ -196,8 +196,8 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
 
 .btn-ghost {
   background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
 }
 .btn-ghost:hover {
   background: var(--bg-elevated);
@@ -232,7 +232,7 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
 .badge-red     { background: rgba(244, 63,  94, 0.12); color: var(--rose-400);    border: 1px solid rgba(244, 63,  94, 0.25); }
 .badge-green   { background: rgba(16, 185, 129, 0.12); color: var(--emerald-400); border: 1px solid rgba(16, 185, 129, 0.25); }
 .badge-purple  { background: rgba(167, 139, 250, 0.12); color: var(--purple-400); border: 1px solid rgba(167, 139, 250, 0.25); }
-.badge-outline { background: transparent; color: var(--text-secondary);           border: 1px solid var(--border-strong); }
+.badge-outline { background: transparent; color: var(--text-primary);             border: 1px solid var(--border-strong); }
 
 /* ── Inputs ───────────────────────────────────────────────────────────────── */
 .input {
@@ -258,10 +258,10 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(8, 8, 13, 0.92);
+  background: rgba(12, 12, 20, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-strong);
 }
 
 .navbar-inner {

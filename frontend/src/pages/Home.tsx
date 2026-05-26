@@ -160,7 +160,7 @@ export default function Home() {
           </h2>
           <p className="text-secondary leading-relaxed mb-6" style={{ fontSize: '1.05rem', margin: '0 auto 1.5rem', maxWidth: '680px' }}>
             Struggling with slow national drug approvals, extreme pricing, or patent barriers?
-            Visit our new **Advocacy & Regulatory Hub** to demystify complex approval timelines, learn how to campaign for **WHO Regulatory Reliance Frameworks**, and find legal tools like **Compulsory Licenses**.
+            Visit our new <strong>Advocacy & Regulatory Hub</strong> to demystify complex approval timelines, learn how to campaign for <strong>WHO Regulatory Reliance Frameworks</strong>, and find legal tools like <strong>Compulsory Licenses</strong>.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link to="/regulatory-hub" className="btn btn-primary">

@@ -165,7 +165,7 @@ export default function RegulatoryHub() {
           </div>
           <p className="text-secondary leading-relaxed" style={{ marginBottom: '1.5rem' }}>
             Do you represent an NGO in a developing country with limited drug review resources? You don't have to wait years for your local agency to review thousand-page clinical dossiers! 
-            Under the **WHO Regulatory Reliance Framework**, small local drug registries can instantly adopt reviews already completed by "Stringent Regulatory Authorities" (like the FDA or EMA).
+            Under the <strong>WHO Regulatory Reliance Framework</strong>, small local drug registries can instantly adopt reviews already completed by "Stringent Regulatory Authorities" (like the FDA or EMA).
           </p>
 
           <div className="access-gap-banner" style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)', color: 'var(--text-secondary)', marginBottom: '2rem' }}>
@@ -173,7 +173,7 @@ export default function RegulatoryHub() {
             <div>
               <div className="access-gap-headline"><strong>The 90-Day Acceleration</strong></div>
               <div className="access-gap-sub">
-                Instead of conducting an independent review from scratch (which takes an average of **2.5 years** in most LMICs), the local agency simply verifies the FDA/EMA certificate and grants approval in **under 90 days**.
+                Instead of conducting an independent review from scratch (which takes an average of <strong>2.5 years</strong> in most LMICs), the local agency simply verifies the FDA/EMA certificate and grants approval in <strong>under 90 days</strong>.
               </div>
             </div>
           </div>
@@ -183,13 +183,13 @@ export default function RegulatoryHub() {
             <div className="card card-sm bg-elevated">
               <div className="font-bold text-sm text-blue mb-1">1. Identify Eligible Medications</div>
               <p className="text-xs text-muted leading-relaxed">
-                Use the MediLens **New Drug Radar** to find drugs approved in the US/EU (flagged as HIC-only) that are currently missing in your country.
+                Use the MediLens <strong>New Drug Radar</strong> to find drugs approved in the US/EU (flagged as HIC-only) that are currently missing in your country.
               </p>
             </div>
             <div className="card card-sm bg-elevated">
               <div className="font-bold text-sm text-blue mb-1">2. Draft a Reliance Petition</div>
               <p className="text-xs text-muted leading-relaxed">
-                Go to your Country Dashboard and click **📢 Build Advocacy Action Plan** or use the **Appeal Letter** tool. The AI will cite the WHO Reliance Framework and draft a formal proposal tailored for your health minister.
+                Go to your Country Dashboard and click <strong>📢 Build Advocacy Action Plan</strong> or use the <strong>Appeal Letter</strong> tool. The AI will cite the WHO Reliance Framework and draft a formal proposal tailored for your health minister.
               </p>
             </div>
             <div className="card card-sm bg-elevated">
@@ -211,7 +211,7 @@ export default function RegulatoryHub() {
           </div>
           <p className="text-secondary leading-relaxed" style={{ marginBottom: '1.5rem' }}>
             When a life-saving drug is priced out of reach due to strict patent monopolies, advocates can look to international law. 
-            Under the World Trade Organization's **TRIPS Agreement (Declaration on Public Health)**, governments possess the absolute sovereign right to bypass patent restrictions to protect national health.
+            Under the World Trade Organization's <strong>TRIPS Agreement (Declaration on Public Health)</strong>, governments possess the absolute sovereign right to bypass patent restrictions to protect national health.
           </p>
 
           <div className="financial-toxicity-alert" style={{ marginBottom: '2rem' }}>

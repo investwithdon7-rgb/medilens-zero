@@ -56,11 +56,19 @@ def run():
         "total_gaps": 0,          # total unregistered drugs (not capped at 20)
     })
 
+    # Caches to eliminate M*N subcollection queries in subsequent calculation steps
+    all_drug_approvals = {}
+    all_drug_prices = {}
+
     for drug_doc in drugs:
         drug      = drug_doc.to_dict()
         # Load approvals and prices for ALL countries in one pass
         approvals = {a.id: a.to_dict() for a in drug_doc.reference.collection("approvals").stream()}
         prices    = {p.id: p.to_dict() for p in drug_doc.reference.collection("prices").stream()}
+
+        # Cache in memory
+        all_drug_approvals[drug_doc.id] = approvals
+        all_drug_prices[drug_doc.id] = prices
 
         # ── Price gap analysis ─────────────────────────────────────────────────
         # Find countries with prices and compute ratio vs global minimum.
@@ -181,21 +189,21 @@ def run():
                         "condition":      drug.get("drug_class") or "Pending Analysis",
                     })
 
-    # Final pass for pricing percentile and shortage risk
+    # Final pass for pricing percentile and shortage risk (100% in-memory from cached data)
     # Risk = 1 - (Avg registration count locally / Avg global count) 
     # (i.e. if the country only has 1 manufacturer for a drug that has 10 elsewhere, risk is high)
     
-    # 1. First, calculate global medicine landscape stats
+    # 1. First, calculate global medicine landscape stats from in-memory cache
     drug_stats = {}
-    for drug_doc in drugs:
-        prices = [p.to_dict().get("price") for p in drug_doc.reference.collection("prices").stream() if p.to_dict().get("price")]
+    for drug_id, prices_dict in all_drug_prices.items():
+        prices = [pd.get("price") for pd in prices_dict.values() if pd.get("price")]
         if prices:
-            drug_stats[drug_doc.id] = {
+            drug_stats[drug_id] = {
                 "prices": sorted(prices),
                 "count":  len(prices)
             }
 
-    # 2. Compute country dashboard with REAL STATS
+    # 2. Compute country dashboard with REAL STATS (no additional Firestore reads)
     batch = db.batch()
     written = 0
     for country, data in country_data.items():
@@ -203,13 +211,14 @@ def run():
         # For each drug in this country that has a price, find its rank globally
         percentiles = []
         for drug_doc in drugs:
-            drug_prices = drug_stats.get(drug_doc.id, {}).get("prices", [])
+            drug_id = drug_doc.id
+            drug_prices = drug_stats.get(drug_id, {}).get("prices", [])
             if not drug_prices: continue
             
-            # Get local price
-            local_price_doc = drug_doc.reference.collection("prices").document(country).get()
-            if local_price_doc.exists:
-                local_val = local_price_doc.to_dict().get("price")
+            # Get local price from memory cache
+            local_price_data = all_drug_prices.get(drug_id, {}).get(country)
+            if local_price_data:
+                local_val = local_price_data.get("price")
                 if local_val:
                     # Rank = index / total
                     try:
@@ -224,12 +233,13 @@ def run():
         # Based on how many manufacturers exist globally vs how many this country has access to
         vulnerabilities = []
         for drug_doc in drugs:
-            global_count = len(list(drug_doc.reference.collection("approvals").stream()))
+            drug_id = drug_doc.id
+            drug_approvals = all_drug_approvals.get(drug_id, {})
+            global_count = len(drug_approvals)
             if global_count == 0: continue
             
-            # Local registration (binary 1 or 0 in this simplified model, 
-            # ideally would be count of local marketing authorisations)
-            local_exists = 1 if drug_doc.reference.collection("approvals").document(country).get().exists else 0
+            # Local registration from memory cache
+            local_exists = 1 if country in drug_approvals else 0
             
             # Risk is higher if the global pool is large but local pool is 0 or 1
             risk = max(0, 1 - (local_exists / max(1, global_count)))

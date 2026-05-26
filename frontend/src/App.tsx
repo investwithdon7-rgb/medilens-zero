@@ -9,6 +9,7 @@ import NewDrugs from './pages/NewDrugs';
 import Countries from './pages/Countries';
 import CountryDashboard from './pages/CountryDashboard';
 import RegulatoryHub from './pages/RegulatoryHub';
+import TrialFinder from './pages/TrialFinder';
 import NotFound from './pages/NotFound';
 
 function ScrollToTop() {
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/new-drugs"     element={<NewDrugs />} />
             <Route path="/countries"     element={<Countries />} />
             <Route path="/regulatory-hub" element={<RegulatoryHub />} />
+            <Route path="/trial-finder"   element={<TrialFinder />} />
             <Route path="/country/:code" element={<CountryDashboard />} />
             <Route path="*"              element={<NotFound />} />
           </Routes>

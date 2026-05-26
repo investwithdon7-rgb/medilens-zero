@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import {
-  Clock, Globe, Activity, DollarSign, AlertTriangle, FileText, BarChart2, TrendingUp,
+  Clock, Globe, Activity, DollarSign, AlertTriangle, FileText, BarChart2, TrendingUp, Award,
 } from 'lucide-react';
 
 const pillars = [
@@ -11,6 +11,7 @@ const pillars = [
   { icon: <BarChart2 size={20} />,     title: 'Country Dashboard',       desc: 'Access Equity Score, gap severity, bottleneck classification per country.',      href: '/countries', color: '#10b981' },
   { icon: <AlertTriangle size={20} />, title: 'Shortage Risk Radar',     desc: 'Supply chain vulnerability score for essential medicines per country.',          href: '/countries', color: '#fb7185' },
   { icon: <FileText size={20} />,      title: 'Advocacy Action Engine',  desc: 'Generate policy briefs, appeal letters, and advocacy plans using AI.',           href: '/countries', color: '#60a5fa' },
+  { icon: <Award size={20} />,         title: 'Clinical Trial Radar',    desc: 'Live NIH tracking: find recruiting Phase III trials and NGO patient-matching toolkits.',  href: '/trial-finder', color: '#ec4899' },
 ];
 
 const stats = [

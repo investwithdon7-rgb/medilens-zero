@@ -223,6 +223,34 @@ export default function RegulatoryHub() {
           using international frameworks, and where you can join forces.
         </p>
 
+        {/* Live Trial Radar Promo Banner */}
+        <div className="card card-sm bg-gradient" style={{ 
+          background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.04) 0%, rgba(59, 130, 246, 0.04) 100%)', 
+          border: '1px solid rgba(236, 72, 153, 0.15)',
+          maxWidth: 640, 
+          margin: '1.5rem auto 0', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          padding: '0.85rem 1.25rem',
+          borderRadius: '8px',
+          textAlign: 'left'
+        }}>
+          <div style={{ flex: 1, minWidth: '240px' }}>
+            <div className="font-bold text-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-primary)' }}>
+              <Zap size={14} style={{ color: 'var(--amber-400)' }} /> New flagship tool live!
+            </div>
+            <p className="text-xs text-muted mt-1" style={{ margin: '0.25rem 0 0' }}>
+              Locate recruiting clinical trials and access 4 strategic patient-matching templates.
+            </p>
+          </div>
+          <Link to="/trial-finder" className="btn btn-primary btn-xs" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', textDecoration: 'none', padding: '0.4rem 0.85rem', fontSize: '0.7rem' }}>
+            Open Live Trial Finder →
+          </Link>
+        </div>
+
         {/* Tab Selection */}
         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}>
           {([

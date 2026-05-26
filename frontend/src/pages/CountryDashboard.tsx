@@ -150,6 +150,42 @@ export default function CountryDashboard() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Listen for preset AI campaigns sent from the Regulatory Playbook Wizard
+  useEffect(() => {
+    if (loading || !data || !code) return;
+
+    const queryParams = new URLSearchParams(window.location.search);
+    const preset = queryParams.get('preset');
+
+    if (preset) {
+      // Clear preset query param from the browser URL so it doesn't loop on refresh
+      window.history.replaceState(null, '', window.location.pathname);
+
+      // Auto-trigger the appropriate AI petition focus
+      if (preset === 'regulatory_reliance_petition') {
+        handleAI('advocacy_plan', `${data.country_name} WHO Reliance Advocacy Plan`, {
+          advocacy_focus: 'WHO Regulatory Reliance Framework, bypassing physical GMP inspection bottlenecks, adopting SRA (FDA/EMA) decisions.'
+        });
+      } else if (preset === 'parallel_importation_petition') {
+        handleAI('advocacy_plan', `${data.country_name} Parallel Importation Campaign Plan`, {
+          advocacy_focus: 'Parallel Importation & Section 12 Emergency Imports, sourcing generics from WTO third-party suppliers.'
+        });
+      } else if (preset === 'trips_compulsory_license_appeal') {
+        handleAI('advocacy_plan', `${data.country_name} Compulsory Licensing Proposal`, {
+          advocacy_focus: 'WTO TRIPS Compulsory Licensing for local generic manufacture, overcoming pricing monopolies.'
+        });
+      } else if (preset === 'trips_article_31bis_import_appeal') {
+        handleAI('advocacy_plan', `${data.country_name} TRIPS Article 31bis Import Appeal`, {
+          advocacy_focus: 'WTO TRIPS Article 31bis for importing generic medicines from global SRA exporters.'
+        });
+      } else if (preset === 'expanded_access_appeal') {
+        handleAI('advocacy_plan', `${data.country_name} Expanded Access Campaign Plan`, {
+          advocacy_focus: 'Expanded Access / Compassionate Use Program, securing named-patient emergency imports.'
+        });
+      }
+    }
+  }, [loading, data, code]);
+
   if (loading) return <LoadingSkeleton />;
   if (!data)   return <Seeding code={code} />;
 

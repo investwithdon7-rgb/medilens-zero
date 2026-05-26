@@ -372,6 +372,8 @@ PROMPT;
     case 'advocacy_plan':
         $drugsBehind = $stats['drugs_behind_2yr']         ?? 0;
         $newUnreg    = $stats['new_drugs_not_registered'] ?? 0;
+        $advocacyFocus = safe_str($payload['advocacy_focus'] ?? '', 250);
+        $focusClause = $advocacyFocus ? "TARGET CAMPAIGN FOCUS: $advocacyFocus" : "";
 
         $prompt = <<<PROMPT
 You are an experienced pharmaceutical access advocate helping a patient group or NGO in $country.
@@ -380,6 +382,7 @@ COUNTRY: $country ($incomeClass)
 DRUG / FOCUS: $drugName ($drugClass)
 DRUGS BEHIND >2 YEARS: $drugsBehind
 NEW DRUGS NOT REGISTERED: $newUnreg
+$focusClause
 DATE: $currentDate
 
 Write a concrete 260-word advocacy action plan with EXACTLY these five sections:

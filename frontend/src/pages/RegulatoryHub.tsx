@@ -90,6 +90,17 @@ const DIRECTORY = [
   { name: 'Cancer Alliance', role: 'Oncology Access & Price Lobbying', desc: 'Coordinated coalition of patient advocates battling for affordable cancer therapies and patent law reforms.', link: 'https://www.canceralliance.co.za' }
 ];
 
+const COUNTRIES_LIST = [
+  { code: 'KEN', name: 'Kenya' },
+  { code: 'IND', name: 'India' },
+  { code: 'ZAF', name: 'South Africa' },
+  { code: 'BRA', name: 'Brazil' },
+  { code: 'RWA', name: 'Rwanda' },
+  { code: 'UGA', name: 'Uganda' },
+  { code: 'GBR', name: 'United Kingdom' },
+  { code: 'DEU', name: 'Germany' }
+];
+
 export default function RegulatoryHub() {
   const [activeTab, setActiveTab] = useState<'navigator' | 'reliance' | 'trips' | 'wizard' | 'directory'>('navigator');
   const [selectedPathway, setSelectedPathway] = useState(0);
@@ -101,6 +112,7 @@ export default function RegulatoryHub() {
   const [localFiled, setLocalFiled] = useState<string | null>(null);
   const [localMfg, setLocalMfg] = useState<string | null>(null);
   const [isUrgent, setIsUrgent] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState('KEN');
 
   const selectedPathData = PATHWAYS[selectedPathway];
   const stepsToRender = routeType === 'standard' ? selectedPathData.standardSteps : selectedPathData.relianceSteps;
@@ -631,14 +643,40 @@ export default function RegulatoryHub() {
                       ))}
                     </div>
 
-                    {/* Buttons */}
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <button onClick={resetWizard} className="btn btn-outline btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <RefreshCw size={12} /> Start Over
-                      </button>
-                      <Link to="/countries" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}>
-                        <Play size={12} /> Launch AI Action Plan preset: {playbook.aiAction} →
-                      </Link>
+                    {/* Buttons & Country Selector */}
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      
+                      {/* Country Selector Box */}
+                      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', background: 'var(--bg-elevated)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                        <div style={{ flex: 1, minWidth: '220px' }}>
+                          <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 700 }}>
+                            Select Target Country to Launch AI Campaign:
+                          </label>
+                          <select 
+                            value={selectedCountry} 
+                            onChange={(e) => setSelectedCountry(e.target.value)}
+                            className="btn btn-outline btn-sm"
+                            style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', background: 'var(--bg-base)', border: '1px solid var(--border-strong)' }}
+                          >
+                            {COUNTRIES_LIST.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                          </select>
+                        </div>
+                        <div style={{ alignSelf: 'flex-end' }}>
+                          <Link 
+                            to={`/country/${selectedCountry.toLowerCase()}?preset=${playbook.aiAction.toLowerCase().replace(/ /g, '_')}`} 
+                            className="btn btn-primary btn-sm" 
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', height: '36px' }}
+                          >
+                            <Play size={12} /> Launch AI Action Plan for {COUNTRIES_LIST.find(c => c.code === selectedCountry)?.name} →
+                          </Link>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <button onClick={resetWizard} className="btn btn-outline btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <RefreshCw size={12} /> Start Over
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

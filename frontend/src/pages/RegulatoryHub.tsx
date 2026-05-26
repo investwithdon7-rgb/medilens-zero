@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Users, Compass, ChevronRight, Award, HelpCircle, CheckCircle, Clock, Zap, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Shield, Users, Compass, ChevronRight, Award, HelpCircle, CheckCircle, Clock, Zap, AlertTriangle, ExternalLink, Play, RefreshCw, Clipboard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const PATHWAYS = [
@@ -91,12 +91,116 @@ const DIRECTORY = [
 ];
 
 export default function RegulatoryHub() {
-  const [activeTab, setActiveTab] = useState<'navigator' | 'reliance' | 'trips' | 'directory'>('navigator');
+  const [activeTab, setActiveTab] = useState<'navigator' | 'reliance' | 'trips' | 'wizard' | 'directory'>('navigator');
   const [selectedPathway, setSelectedPathway] = useState(0);
   const [routeType, setRouteType] = useState<'standard' | 'reliance'>('standard');
 
+  // Interactive Diagnostic Wizard State
+  const [wizardStep, setWizardStep] = useState(1);
+  const [globalApproved, setGlobalApproved] = useState<string | null>(null);
+  const [localFiled, setLocalFiled] = useState<string | null>(null);
+  const [localMfg, setLocalMfg] = useState<string | null>(null);
+  const [isUrgent, setIsUrgent] = useState<string | null>(null);
+
   const selectedPathData = PATHWAYS[selectedPathway];
   const stepsToRender = routeType === 'standard' ? selectedPathData.standardSteps : selectedPathData.relianceSteps;
+
+  // Generate Playbook based on wizard inputs
+  const getPlaybookResult = () => {
+    let result;
+    if (globalApproved === 'no') {
+      result = {
+        class: 'Clinical Development Lag',
+        color: 'var(--amber-400)',
+        bg: 'rgba(245, 158, 11, 0.05)',
+        border: '1px solid rgba(245, 158, 11, 0.2)',
+        pathway: 'Expanded Access / Compassionate Use Program',
+        strategy: 'Since the drug is still experimental or not approved by major SRAs (FDA/EMA), standard local commercial registration is not possible. Your best path is advocating for compassionate importation.',
+        steps: [
+          'Petition the Ministry of Health and the manufacturer for a "Compassionate Use" or "Named Patient" import license.',
+          'Identify global ongoing clinical trials and lobby to add local medical centers as trial sites to provide patient access.',
+          'Monitor international regulatory pipelines via the MediLens New Drug Radar for emerging safety/efficacy reports.'
+        ],
+        aiAction: 'Expanded Access Appeal'
+      };
+    } else if (localFiled === 'stuck') {
+      result = {
+        class: 'Regulatory Registration Bottleneck',
+        color: 'var(--blue-400)',
+        bg: 'rgba(59, 130, 246, 0.05)',
+        border: '1px solid rgba(59, 130, 246, 0.2)',
+        pathway: 'WHO Regulatory Reliance Framework',
+        strategy: 'The drug is approved globally but stalled locally inside your agency\'s review process. You have powerful leverage to lobby for immediate fast-tracking.',
+        steps: [
+          'Petition the local drug board to invoke the WHO Regulatory Reliance Guidelines, demanding they adopt the FDA/EMA scientific review.',
+          'Lobby for an administrative waiver of local physical GMP inspections, replacing them with foreign SRA inspection certificates.',
+          'Coordinate local medical societies to issue a joint clinical urgency letter to the Health Minister highlighting the pipeline lag.'
+        ],
+        aiAction: 'Regulatory Reliance Petition'
+      };
+    } else if (localFiled === 'no') {
+      result = {
+        class: 'Originator Access Neglect',
+        color: 'var(--rose-400)',
+        bg: 'rgba(244, 63, 94, 0.05)',
+        border: '1px solid rgba(244, 63, 94, 0.2)',
+        pathway: 'Parallel Importation & Public Health Emergency Licenses',
+        strategy: 'The originator company has refused to even submit the drug for registration in your country, creating a complete access void. You must bypass the originator.',
+        steps: [
+          'Lobby the government to authorize Parallel Importation of generic equivalents already authorized in other countries (e.g. India or Brazil).',
+          'Request an emergency Section 12 waiver to import finished doses from global third-party generic distributors without manufacturer approval.',
+          'Challenge originator monopolization by coordinating with regional procurement hubs to pool generic orders.'
+        ],
+        aiAction: 'Parallel Importation Petition'
+      };
+    } else if (localMfg === 'yes') {
+      result = {
+        class: 'Monopoly Pricing with Local Industrial Capacity',
+        color: 'var(--teal-400)',
+        bg: 'rgba(16, 185, 129, 0.05)',
+        border: '1px solid rgba(16, 185, 129, 0.2)',
+        pathway: 'WTO TRIPS Compulsory Licensing (Local Manufacture)',
+        strategy: 'The drug is registered but priced out of reach. Since your country possesses domestic pharmaceutical manufacturing, you can legally produce affordable generic equivalents locally.',
+        steps: [
+          'Lobby the Ministry of Industry or Health to issue a national Compulsory License (CL) allowing local generic plants to manufacture the drug.',
+          'File a Patent Opposition at the national patent registry, challenging any "evergreening" patents filed by the originator.',
+          'Request the national health board to institute mandatory reference pricing controls based on global minimum generic rates.'
+        ],
+        aiAction: 'TRIPS Compulsory License Appeal'
+      };
+    } else {
+      result = {
+        class: 'Monopoly Pricing in Import-Reliant Nation',
+        color: 'var(--amber-400)',
+        bg: 'rgba(245, 158, 11, 0.05)',
+        border: '1px solid rgba(245, 158, 11, 0.2)',
+        pathway: 'WTO TRIPS Article 31bis (Compulsory Importation)',
+        strategy: 'The drug is registered but priced out of reach. Because your country lacks local manufacturing, you must import generics produced under a compulsory license elsewhere.',
+        steps: [
+          'Lobby for an import-based Compulsory License under WTO TRIPS Article 31bis.',
+          'Partner with generic exporters in manufacturing countries (like India or Canada) to produce and export generic batches under their matching export systems.',
+          'Petition the Health Ministry to seek voluntary patent licenses via the Medicines Patent Pool (MPP) for your specific territory.'
+        ],
+        aiAction: 'TRIPS Article 31bis Import Appeal'
+      };
+    }
+
+    if (isUrgent === 'yes') {
+      result.steps = [
+        ...result.steps,
+        '🚨 Emergency Acceleration: Because this treats an immediate life-threatening illness, petition the Ministry under national emergency acts to issue an expedited import authorization within 48 hours, bypassing standard administrative queues.'
+      ];
+    }
+    return result;
+  };
+
+  const resetWizard = () => {
+    setWizardStep(1);
+    setGlobalApproved(null);
+    setLocalFiled(null);
+    setLocalMfg(null);
+    setIsUrgent(null);
+  };
 
   return (
     <div className="container section">
@@ -118,6 +222,7 @@ export default function RegulatoryHub() {
             { key: 'navigator', label: 'Pathway Navigator', icon: <Compass size={14} /> },
             { key: 'reliance',  label: 'Fast-Track Reliance', icon: <Award size={14} /> },
             { key: 'trips',     label: 'Patent Options & TRIPS', icon: <Shield size={14} /> },
+            { key: 'wizard',    label: 'Campaign Playbook Wizard', icon: <Zap size={14} style={{ color: 'var(--amber-400)' }} /> },
             { key: 'directory', label: 'NGO Collaborators', icon: <Users size={14} /> },
           ] as const).map(tab => (
             <button
@@ -333,7 +438,217 @@ export default function RegulatoryHub() {
         </div>
       )}
 
-      {/* Tab 4: NGO Collaborators */}
+      {/* Tab 4: Playbook Wizard */}
+      {activeTab === 'wizard' && (
+        <div className="card card-lg" style={{ maxWidth: 740, margin: '0 auto' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <Zap size={24} style={{ color: 'var(--amber-400)' }} />
+            <h2>Interactive Campaign Playbook Wizard</h2>
+          </div>
+          <p className="text-secondary text-sm leading-relaxed mb-6" style={{ marginBottom: '2rem' }}>
+            Struggling with drug access in your country but not sure where the administrative bottleneck is?
+            Answer 4 simple questions below to diagnose the access barrier and generate a custom legal advocacy strategy.
+          </p>
+
+          {/* Wizard Steps */}
+          {wizardStep <= 4 ? (
+            <div>
+              {/* Progress Indicator */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
+                {[1, 2, 3, 4].map(s => (
+                  <div 
+                    key={s} 
+                    style={{ 
+                      flex: 1, 
+                      height: '4px', 
+                      background: s <= wizardStep ? 'var(--blue-500)' : 'var(--border-strong)',
+                      borderRadius: '2px',
+                      transition: 'background 0.3s ease'
+                    }} 
+                  />
+                ))}
+              </div>
+
+              {/* Step 1: Global Status */}
+              {wizardStep === 1 && (
+                <div>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1.25rem' }}>
+                    1. Is the medicine approved by a major global authority (e.g., US FDA, EMA, or WHO Prequalified)?
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <button 
+                      onClick={() => { setGlobalApproved('yes'); setWizardStep(2); }}
+                      className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '1rem', textAlign: 'left', width: '100%' }}
+                    >
+                      👍 Yes, approved by FDA, EMA, or WHO-PQ
+                    </button>
+                    <button 
+                      onClick={() => { setGlobalApproved('no'); setWizardStep(2); }}
+                      className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '1rem', textAlign: 'left', width: '100%' }}
+                    >
+                      🔬 No, it is still experimental or only approved in niche regions
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Local Filing Status */}
+              {wizardStep === 2 && (
+                <div>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1.25rem' }}>
+                    2. Has the drug manufacturer submitted the medicine for approval in your local country?
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <button 
+                      onClick={() => { setLocalFiled('registered'); setWizardStep(3); }}
+                      className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '1rem', textAlign: 'left', width: '100%' }}
+                    >
+                      ✔️ Yes, it is registered, but sold at an extreme commercial price
+                    </button>
+                    <button 
+                      onClick={() => { setLocalFiled('stuck'); setWizardStep(3); }}
+                      className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '1rem', textAlign: 'left', width: '100%' }}
+                    >
+                      ⏳ Yes, but it is currently stuck in our national review pipeline
+                    </button>
+                    <button 
+                      onClick={() => { setLocalFiled('no'); setWizardStep(3); }}
+                      className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '1rem', textAlign: 'left', width: '100%' }}
+                    >
+                      ❌ No, the manufacturer has neglected to even apply for registration here
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Manufacturing Capability */}
+              {wizardStep === 3 && (
+                <div>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1.25rem' }}>
+                    3. Does your nation have domestic pharmaceutical manufacturing capable of making high-quality generic copies?
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <button 
+                      onClick={() => { setLocalMfg('yes'); setWizardStep(4); }}
+                      className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '1rem', textAlign: 'left', width: '100%' }}
+                    >
+                      🏭 Yes, we have active local generic formulation plants (e.g. India, Brazil, Kenya)
+                    </button>
+                    <button 
+                      onClick={() => { setLocalMfg('no'); setWizardStep(4); }}
+                      className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '1rem', textAlign: 'left', width: '100%' }}
+                    >
+                      🚢 No, we are fully import-reliant for finished chemical and biological medicines
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Disease Urgency */}
+              {wizardStep === 4 && (
+                <div>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1.25rem' }}>
+                    4. Is this drug intended to treat a severe, life-threatening, or chronic illness (e.g. Cancer, HIV, Rare Disease)?
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <button 
+                      onClick={() => { setIsUrgent('yes'); setWizardStep(5); }}
+                      className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '1rem', textAlign: 'left', width: '100%' }}
+                    >
+                      ⚠️ Yes, it treats an immediate life-threatening or severe chronic condition
+                    </button>
+                    <button 
+                      onClick={() => { setIsUrgent('no'); setWizardStep(5); }}
+                      className="btn btn-outline" style={{ justifyContent: 'flex-start', padding: '1rem', textAlign: 'left', width: '100%' }}
+                    >
+                      🩹 No, it is for minor, non-emergency, or cosmetic conditions
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'space-between' }}>
+                {wizardStep > 1 && (
+                  <button onClick={() => setWizardStep(prev => prev - 1)} className="btn btn-ghost btn-sm">
+                    ← Back
+                  </button>
+                )}
+                <span className="text-xs text-muted" style={{ marginLeft: 'auto', alignSelf: 'center' }}>Step {wizardStep} of 4</span>
+              </div>
+            </div>
+          ) : (
+            // Wizard Results Panel
+            <div>
+              {(() => {
+                const playbook = getPlaybookResult();
+                return (
+                  <div>
+                    {/* Diagnosis Banner */}
+                    <div style={{ 
+                      background: playbook.bg, 
+                      border: playbook.border, 
+                      padding: '1.25rem', 
+                      borderRadius: '8px', 
+                      marginBottom: '2rem',
+                      borderLeft: `4px solid ${playbook.color}`
+                    }}>
+                      <div className="font-mono text-xs text-muted mb-1" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosed Access Barrier</div>
+                      <h3 style={{ fontSize: '1.15rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{playbook.class}</h3>
+                      <div className="text-xs text-secondary leading-relaxed">
+                        Recommended Campaign Framework: <strong style={{ color: 'var(--text-primary)' }}>{playbook.pathway}</strong>
+                      </div>
+                    </div>
+
+                    <h3 style={{ fontSize: '1.05rem', marginBottom: '0.75rem' }}>Strategic Campaign Direction:</h3>
+                    <p className="text-sm text-secondary leading-relaxed mb-6" style={{ marginBottom: '2rem' }}>
+                      {playbook.strategy}
+                    </p>
+
+                    <h3 style={{ fontSize: '1.05rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Clipboard size={16} style={{ color: 'var(--blue-400)' }} /> Your Step-by-Step Action Plan:
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2.5rem' }}>
+                      {playbook.steps.map((step, idx) => (
+                        <div key={idx} className="card card-sm bg-elevated" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                          <span style={{ 
+                            background: 'var(--bg-base)', 
+                            border: '1px solid var(--border-strong)', 
+                            width: '24px', 
+                            height: '24px', 
+                            borderRadius: '50%', 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            fontSize: '0.75rem', 
+                            fontWeight: 700,
+                            color: 'var(--blue-400)',
+                            flexShrink: 0
+                          }}>
+                            {idx + 1}
+                          </span>
+                          <p className="text-xs text-secondary leading-relaxed" style={{ margin: 0 }}>{step}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Buttons */}
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <button onClick={resetWizard} className="btn btn-outline btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <RefreshCw size={12} /> Start Over
+                      </button>
+                      <Link to="/countries" className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}>
+                        <Play size={12} /> Launch AI Action Plan preset: {playbook.aiAction} →
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 5: NGO Collaborators */}
       {activeTab === 'directory' && (
         <div style={{ maxWidth: 840, margin: '0 auto' }}>
           <h2 className="text-center mb-4" style={{ fontSize: '1.375rem' }}>Advocacy & NGO Directory</h2>

@@ -9,6 +9,8 @@ const COUNTRIES_LIST = Object.entries(COUNTRY_DATA).map(([code, value]) => ({
   name: value.name
 })).sort((a, b) => a.name.localeCompare(b.name));
 
+const TRIALS_PROXY_URL = import.meta.env.VITE_TRIALS_PROXY_URL || 'https://tekdruid.com/medilens/api/trials.php';
+
 export default function TrialFinder() {
   // Query States
   const [query, setQuery] = useState('');
@@ -28,14 +30,15 @@ export default function TrialFinder() {
   // Toolkit Accordion States
   const [activeToolkit, setActiveToolkit] = useState<string | null>(null);
 
-  // Fetch trials from ClinicalTrials.gov APIv2
+  // Fetch trials from ClinicalTrials.gov APIv2 via secure CORS proxy
   const fetchTrials = async () => {
     setLoading(true);
     setError(null);
     try {
-      let url = `https://clinicaltrials.gov/api/v2/studies?pageSize=12`;
-      const terms: string[] = [];
+      const params = new URLSearchParams();
+      params.append('pageSize', '12');
       
+      const terms: string[] = [];
       if (query.trim()) terms.push(query.trim());
       if (country) {
         const countryName = COUNTRY_DATA[country]?.name;
@@ -43,15 +46,16 @@ export default function TrialFinder() {
       }
 
       if (terms.length > 0) {
-        url += `&query.term=${encodeURIComponent(terms.join(' AND '))}`;
+        params.append('query.term', terms.join(' AND '));
       }
       if (phase) {
-        url += `&filter.phases=${phase}`;
+        params.append('filter.phases', phase);
       }
       if (status) {
-        url += `&filter.overallStatus=${status}`;
+        params.append('filter.overallStatus', status);
       }
 
+      const url = `${TRIALS_PROXY_URL}?${params.toString()}`;
       const res = await fetch(url);
       if (!res.ok) {
         throw new Error(`Failed to fetch: Server returned ${res.status}`);

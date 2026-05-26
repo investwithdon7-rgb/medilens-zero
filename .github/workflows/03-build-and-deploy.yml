@@ -39,6 +39,7 @@ jobs:
           VITE_FIREBASE_APP_ID:             ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_AI_PROXY_URL:                https://tekdruid.com/medilens/api/ai.php
           VITE_AI_PROXY_TOKEN:              ${{ secrets.MEDILENS_PROXY_TOKEN }}
+          VITE_TRIALS_PROXY_URL:            https://tekdruid.com/medilens/api/trials.php
         run: npm run build
         working-directory: frontend
 

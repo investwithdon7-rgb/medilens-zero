@@ -2,13 +2,23 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Search, Globe, Activity, Menu, X, Sun, Moon } from 'lucide-react';
 import { searchDrugs } from '../lib/search';
+import RequestDrugModal from './RequestDrugModal';
 
 export default function Navbar() {
   const [query, setQuery]     = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [initialDrugName, setInitialDrugName] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
   const navigate  = useNavigate();
+
+  const handleRequestTrackingClick = (name: string) => {
+    setInitialDrugName(name);
+    setIsModalOpen(true);
+    setQuery('');
+    setResults([]);
+  };
 
   // Theme state defaulting to light
   const [theme, setTheme] = useState(() => {
@@ -86,34 +96,62 @@ export default function Navbar() {
             aria-controls="search-results-list"
             aria-expanded={results.length > 0}
           />
-          {results.length > 0 && (
+          {(results.length > 0 || query.trim().length >= 2) && (
             <div
               className="search-results"
               role="listbox"
               aria-label="Search results"
               id="search-results-list"
             >
-              {results.map((hit, i) => (
-                <div
-                  key={hit.id}
-                  className="search-result-item"
+              {results.length > 0 ? (
+                results.map((hit, i) => (
+                  <div
+                    key={hit.id}
+                    className="search-result-item"
+                    role="option"
+                    aria-selected={i === 0}
+                    tabIndex={0}
+                    onClick={() => handleSelect(hit.document?.inn ?? hit.id)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSelect(hit.document?.inn ?? hit.id);
+                      }
+                    }}
+                  >
+                    <div className="search-result-name">{hit.document?.inn}</div>
+                    <div className="search-result-meta">
+                      {hit.document?.brand_names}{hit.document?.drug_class ? ` · ${hit.document.drug_class}` : ''}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div 
+                  className="search-result-item" 
                   role="option"
-                  aria-selected={i === 0}
                   tabIndex={0}
-                  onClick={() => handleSelect(hit.document?.inn ?? hit.id)}
+                  onClick={() => handleRequestTrackingClick(query)}
                   onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      handleSelect(hit.document?.inn ?? hit.id);
+                      handleRequestTrackingClick(query);
                     }
                   }}
+                  style={{ 
+                    cursor: 'pointer', 
+                    padding: '0.85rem 1rem', 
+                    borderLeft: '3px solid var(--teal-400)',
+                    background: 'rgba(20, 184, 166, 0.03)' 
+                  }}
                 >
-                  <div className="search-result-name">{hit.document?.inn}</div>
-                  <div className="search-result-meta">
-                    {hit.document?.brand_names}{hit.document?.drug_class ? ` · ${hit.document.drug_class}` : ''}
+                  <div className="search-result-name" style={{ color: 'var(--teal-400)', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                    🔍 Don't see "{query}"?
+                  </div>
+                  <div className="search-result-meta" style={{ fontSize: '0.75rem', marginTop: '0.15rem' }}>
+                    Click here to ask MediLens AI to start tracking this drug →
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
@@ -178,6 +216,13 @@ export default function Navbar() {
           </ul>
         </div>
       )}
+
+      {/* Secure crowdsourced drug tracking modal portal */}
+      <RequestDrugModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        initialDrugName={initialDrugName} 
+      />
     </nav>
   );
 }

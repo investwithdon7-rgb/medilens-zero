@@ -49,6 +49,19 @@ service cloud.firestore {
                     && request.resource.data.price_local > 0;
     }
 
+    // Crowdsourced drug requests — public write only, strict validation schemas, no public read/update/delete
+    match /drug_requests/{requestId} {
+      allow create: if request.resource.data.keys().hasAll(['drug_name', 'requester_type', 'target_country', 'urgency', 'notes', 'status', 'timestamp'])
+                    && request.resource.data.drug_name is string && request.resource.data.drug_name.size() > 0 && request.resource.data.drug_name.size() <= 100
+                    && request.resource.data.requester_type is string && request.resource.data.requester_type.size() <= 50
+                    && request.resource.data.target_country is string && request.resource.data.target_country.size() <= 10
+                    && request.resource.data.urgency is string && request.resource.data.urgency in ['low', 'medium', 'high']
+                    && request.resource.data.notes is string && request.resource.data.notes.size() <= 500
+                    && request.resource.data.status == 'PENDING'
+                    && request.resource.data.timestamp is string && request.resource.data.timestamp.size() <= 40;
+      allow read, update, delete: if false;
+    }
+
     // Everything else: deny
     match /{document=**} {
       allow read, write: if false;

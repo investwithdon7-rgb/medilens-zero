@@ -9,6 +9,7 @@ import {
   limit,
   getDocs,
   orderBy,
+  addDoc,
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
@@ -133,3 +134,47 @@ export async function getShortageForecasts(countryCode: string, maxResults = 20)
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
+
+// ── Drug Requests (Crowdsourced Tracking) ────────────────────────────────────
+
+export interface DrugRequestPayload {
+  drugName: string;
+  requesterType: string;
+  targetCountry: string;
+  urgency: 'low' | 'medium' | 'high';
+  notes: string;
+}
+
+/**
+ * Submit a drug tracking request securely to Firestore.
+ * Performs client-side sanitization (stripping HTML, capping length)
+ * to comply with strict database security policies.
+ */
+export async function submitDrugRequest(payload: DrugRequestPayload): Promise<string> {
+  // Simple XSS sanitization (strip HTML tags)
+  const sanitize = (text: string) => {
+    return (text || '')
+      .replace(/<[^>]*>/g, '') // Strip standard HTML tags
+      .trim();
+  };
+
+  const drug_name = sanitize(payload.drugName).slice(0, 100);
+  const requester_type = sanitize(payload.requesterType).slice(0, 50);
+  const target_country = sanitize(payload.targetCountry).slice(0, 10);
+  const urgency = payload.urgency;
+  const notes = sanitize(payload.notes).slice(0, 500);
+
+  const col = collection(db, 'drug_requests');
+  const docRef = await addDoc(col, {
+    drug_name,
+    requester_type,
+    target_country,
+    urgency,
+    notes,
+    status: 'PENDING',
+    timestamp: new Date().toISOString()
+  });
+
+  return docRef.id;
+}
+

@@ -166,12 +166,6 @@ export default function Home() {
             <Link to="/regulatory-hub" className="btn btn-primary">
               Explore Advocacy Hub →
             </Link>
-            <a href="/medilens/MediLens_User_Guide.docx" download className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FileText size={14} /> Word Guide (.docx)
-            </a>
-            <a href="/medilens/MediLens_User_Guide.pdf" target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FileText size={14} /> PDF Guide (.pdf)
-            </a>
           </div>
         </div>
       </section>

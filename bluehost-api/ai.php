@@ -156,7 +156,7 @@ Write a structured 250-word policy brief with EXACTLY these four sections:
    — Reference comparable countries that have already registered this drug
 
 3. RECOMMENDED POLICY ACTIONS (3 specific, actionable steps)
-   — Each with a precedent from a country that successfully addressed a similar gap
+   — Each with a precedent from a country that successfully addressed a similar gap (e.g. implementing the WHO Regulatory Reliance framework to fast-track approval in under 90 days based on FDA/EMA registration, if applicable)
    — One must be achievable within 12 months
 
 4. SUCCESS METRIC
@@ -393,8 +393,7 @@ Data-backed, human-centred messages that work for media, government, and public 
 Each under 30 words.
 
 INTERNATIONAL FRAMEWORKS TO CITE
-Relevant TRIPS flexibilities, WHO resolutions, UN SDG3 targets, or regional agreements
-(AfCFTA, ASEAN, AU Agenda 2063) that support the advocacy claim.
+Relevant TRIPS flexibilities, WHO resolutions, UN SDG3 targets, regional agreements (AfCFTA, ASEAN, AU Agenda 2063), or national Regulatory Reliance Pathways (such as fast-tracking already EMA/FDA/WHO-PQ approved drugs under the WHO Reliance Framework) that support the advocacy claim.
 
 COMPARABLE SUCCESS STORY
 Name one country that closed a similar gap. How did they do it? What was the timeline?

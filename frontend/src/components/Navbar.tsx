@@ -122,6 +122,7 @@ export default function Navbar() {
         <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <NavLink to="/" end>Dashboard</NavLink>
           <NavLink to="/new-drugs">New Drugs</NavLink>
+          <NavLink to="/regulatory-hub">Advocacy Hub</NavLink>
           <NavLink to="/countries" className={({ isActive }) => isActive ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}>
             <Globe size={14} />
             Countries
@@ -165,6 +166,7 @@ export default function Navbar() {
           <ul className="mobile-nav-links">
             <li><NavLink to="/" onClick={() => setMobileOpen(false)}>Dashboard</NavLink></li>
             <li><NavLink to="/new-drugs" onClick={() => setMobileOpen(false)}>New Drugs</NavLink></li>
+            <li><NavLink to="/regulatory-hub" onClick={() => setMobileOpen(false)}>Advocacy Hub</NavLink></li>
             <li>
               <NavLink to="/countries" onClick={() => setMobileOpen(false)}>
                 <Globe size={14} style={{ display: 'inline', marginRight: 4 }} />

@@ -145,6 +145,37 @@ export default function Home() {
         </div>
       </section>
 
+      {/* NGO & Patient Advocacy Hub Call-out */}
+      <section className="section bg-gradient" style={{ 
+        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(59, 130, 246, 0.04) 100%)', 
+        borderTop: '1px solid var(--border)', 
+        borderBottom: '1px solid var(--border)' 
+      }}>
+        <div className="container" style={{ textAlign: 'center', maxWidth: 800 }}>
+          <div className="badge badge-teal mb-4" style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+            📣 Advocacy & Regulatory Hub
+          </div>
+          <h2 className="mb-4" style={{ fontSize: 'clamp(1.5rem, 3vw, 2.25rem)' }}>
+            Empowering Communities to <span className="accent">Bridge the Medicine Gap</span>
+          </h2>
+          <p className="text-secondary leading-relaxed mb-6" style={{ fontSize: '1.05rem', margin: '0 auto 1.5rem', maxWidth: '680px' }}>
+            Struggling with slow national drug approvals, extreme pricing, or patent barriers?
+            Visit our new **Advocacy & Regulatory Hub** to demystify complex approval timelines, learn how to campaign for **WHO Regulatory Reliance Frameworks**, and find legal tools like **Compulsory Licenses**.
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/regulatory-hub" className="btn btn-primary">
+              Explore Advocacy Hub →
+            </Link>
+            <a href="/medilens/MediLens_User_Guide.docx" download className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FileText size={14} /> Word Guide (.docx)
+            </a>
+            <a href="/medilens/MediLens_User_Guide.pdf" target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FileText size={14} /> PDF Guide (.pdf)
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* EU/UK Focus Spotlight */}
       <section className="section" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="container">

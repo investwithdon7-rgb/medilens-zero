@@ -8,6 +8,7 @@ import DrugProfile from './pages/DrugProfile';
 import NewDrugs from './pages/NewDrugs';
 import Countries from './pages/Countries';
 import CountryDashboard from './pages/CountryDashboard';
+import RegulatoryHub from './pages/RegulatoryHub';
 import NotFound from './pages/NotFound';
 
 function ScrollToTop() {
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/drug/:inn"     element={<DrugProfile />} />
             <Route path="/new-drugs"     element={<NewDrugs />} />
             <Route path="/countries"     element={<Countries />} />
+            <Route path="/regulatory-hub" element={<RegulatoryHub />} />
             <Route path="/country/:code" element={<CountryDashboard />} />
             <Route path="*"              element={<NotFound />} />
           </Routes>

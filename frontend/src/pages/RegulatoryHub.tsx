@@ -1,44 +1,85 @@
 import { useState } from 'react';
-import { Shield, Users, Compass, ChevronRight, Award, HelpCircle, CheckCircle, Clock } from 'lucide-react';
+import { Shield, Users, Compass, ChevronRight, Award, HelpCircle, CheckCircle, Clock, Zap, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const PATHWAYS = [
   {
     country: 'Kenya / East Africa (PPB)',
-    steps: [
+    agencyName: 'Pharmacy and Poisons Board (PPB)',
+    framework: 'EAC Joint Medical Products Harmonization (EAC-MRH) & WHO Regulatory Reliance Framework',
+    standardSteps: [
       { name: 'Dossier Submission', time: '1–2 Months', desc: 'Manufacturer submits the Common Technical Document (CTD) dossier to the Pharmacy and Poisons Board.' },
-      { name: 'Technical Evaluation', time: '6–12 Months', desc: 'Clinical safety, efficacy data, and bioequivalence records are thoroughly analyzed by the board.' },
-      { name: 'Local GMP Audit', time: '3–6 Months', desc: 'Good Manufacturing Practices (GMP) audit of the production facility is completed or verified.' },
-      { name: 'Registration Decision', time: '1–2 Months', desc: 'Marketing Authorization is granted and the drug is gazetted for local distribution.' },
+      { name: 'Technical Evaluation', time: '12–18 Months', desc: 'Clinical safety, efficacy data, and bioequivalence records are thoroughly analyzed by the board.' },
+      { name: 'Local GMP Audit', time: '6–12 Months', desc: 'Physical Good Manufacturing Practices (GMP) audit of the foreign production facility is scheduled and completed.' },
+      { name: 'Registration & Gazettement', time: '2–3 Months', desc: 'Marketing Authorization is granted and the drug is gazetted for local distribution.' },
       { name: 'KEMSA / Public Tender', time: '3–9 Months', desc: 'Listed on the national essential medicines procurement registry for public hospital supply.' }
-    ]
+    ],
+    relianceSteps: [
+      { name: 'SRA Approval Verification', time: '1 Month', desc: 'Manufacturer submits proof of FDA, EMA, or WHO Prequalification (WHO-PQ) approval to PPB.' },
+      { name: 'Fast-Track Dossier Review', time: '1–2 Months', desc: 'PPB conducts a simplified administrative review, adopting the SRA scientific evaluation report.' },
+      { name: 'GMP Inspection Waiver', time: 'Under 1 Month', desc: 'PPB waives the local physical inspection, relying on the foreign SRA audit clearance.' },
+      { name: 'Accelerated Authorization', time: '90 Days Total', desc: 'Marketing authorization granted under PPB Regulatory Reliance guidelines, enabling instant importation.' }
+    ],
+    leverageClause: 'Section 12 of the Pharmacy and Poisons Act (Cap 244) & PPB Guidelines on Regulatory Reliance.',
+    bottleneckStrategy: 'If a drug is approved by the FDA/EMA/WHO-PQ but has been stuck in Kenya for >6 months, petition the PPB to apply their Regulatory Reliance Guidelines. This legally waives the physical GMP inspection requirement—which is the single longest bottleneck for generic imports.',
+    aiPreset: 'Reliance Petition / Cap 244 Waiver'
   },
   {
     country: 'India (CDSCO)',
-    steps: [
-      { name: 'IND / Clinical Filing', time: '2–3 Months', desc: 'Filing of new drug registration application at the Central Drugs Standard Control Organisation.' },
-      { name: 'SEC Expert Review', time: '4–8 Months', desc: 'Subject Expert Committees (SEC) evaluate safety, dosage parameters, and ethnicity-specific clinical trials.' },
-      { name: 'Quality Lab Testing', time: '2–4 Months', desc: 'Central Drugs Laboratory (CDL) conducts molecular purity, safety validation, and batch consistency testing.' },
-      { name: 'Approval & Pricing', time: '3–6 Months', desc: 'Approved for marketing; retail pricing is capped by the National Pharmaceutical Pricing Authority (NPPA).' }
-    ]
+    agencyName: 'Central Drugs Standard Control Organisation (CDSCO)',
+    framework: 'New Drugs and Clinical Trial Rules (2019) & Rule 75/80 SRA waivers',
+    standardSteps: [
+      { name: 'IND Filing & Application', time: '2–3 Months', desc: 'Sponsor submits application for approval of a new drug or clinical trial to the DCGI.' },
+      { name: 'SEC Expert Review & Trials', time: '12–24 Months', desc: 'Subject Expert Committees (SEC) evaluate safety and often mandate local Phase III clinical trials in Indian populations.' },
+      { name: 'Quality Lab Validation', time: '3–6 Months', desc: 'Central Drugs Laboratory (CDL) conducts molecular purity, safety validation, and batch consistency testing.' },
+      { name: 'Approval & NPPA Pricing', time: '4–8 Months', desc: 'Approved for marketing; retail pricing is evaluated and capped by the National Pharmaceutical Pricing Authority (NPPA).' }
+    ],
+    relianceSteps: [
+      { name: 'SRA Waiver Application', time: '1 Month', desc: 'Sponsor files under Rule 75/80 showing approval in an SRA (US, EU, UK, Japan, Australia) for severe/orphan diseases.' },
+      { name: 'SEC Clinical Trial Waiver', time: '2 Months', desc: 'SEC waives the mandatory local Phase III clinical trial requirement based on established global safety records.' },
+      { name: 'Fast-Track Scientific Approval', time: '90–120 Days', desc: 'Accelerated marketing authorization granted by CDSCO, bypassing months of clinical trials.' }
+    ],
+    leverageClause: 'Rule 75 & Rule 80 of the New Drugs and Clinical Trials Rules, 2019 (Clinical Trial Waiver).',
+    bottleneckStrategy: 'For critical oncology, rare disease, or orphan drugs approved in high-income countries but delayed in India, petition the SEC/DCGI for a local trial waiver. Cite the rule that allows waiving Phase III trials if the drug is already approved by major global SRAs and satisfies an unmet public health need.',
+    aiPreset: 'Rule 75 Trial Waiver Petition'
   },
   {
     country: 'European Union (EMA)',
-    steps: [
-      { name: 'EPAR Submission', time: '1 Month', desc: 'Scientific review request submitted to the Committee for Medicinal Products for Human Use (CHMP).' },
-      { name: 'Scientific Assessment', time: '7–9 Months', desc: 'Rigorous central scientific review of chemical, preclinical, and clinical trial dossiers.' },
-      { name: 'EC Commission Decision', time: '2 Months', desc: 'European Commission issues formal legally-binding Marketing Authorization for all EU27 markets.' },
-      { name: 'HTA / National Listing', time: '3–18 Months', desc: 'Individual member states (e.g. G-BA in Germany) complete pricing assessments and national health insurance inclusion.' }
-    ]
+    agencyName: 'European Medicines Agency (EMA)',
+    framework: 'EMA Accelerated Assessment (Article 14(9) of Regulation (EC) 726/2004)',
+    standardSteps: [
+      { name: 'EPAR Dossier Submission', time: '1 Month', desc: 'Scientific review request and complete clinical dossier submitted to the Committee for Medicinal Products (CHMP).' },
+      { name: 'CHMP Scientific Assessment', time: '7–9 Months', desc: 'Rigorous central scientific review of chemical, preclinical, and clinical trial records (active review takes 210 days).' },
+      { name: 'European Commission Decision', time: '67 Days', desc: 'European Commission issues a formal legally-binding Marketing Authorization for all EU27 member states.' },
+      { name: 'HTA & Pricing Negotiations', time: '3–18 Months', desc: 'Individual member states complete Health Technology Assessments (HTA) and national health insurance pricing inclusion.' }
+    ],
+    relianceSteps: [
+      { name: 'Accelerated Assessment Request', time: 'Before Filing', desc: 'Sponsor requests fast-track status by proving the drug represents a major therapeutic innovation for public health.' },
+      { name: 'Fast-Track CHMP Evaluation', time: '150 Days', desc: 'CHMP review timeline is cut from 210 days to 150 days, prioritizing scientific resources and active evaluation.' },
+      { name: 'Joint HTA Acceleration', time: 'Parallel Stage', desc: 'Member states conduct collaborative clinical HTA reviews concurrently, reducing country-level reimbursement lag.' }
+    ],
+    leverageClause: 'Article 14(9) of Regulation (EC) 726/2004 & EU Joint HTA Regulation (Regulation (EU) 2021/2282).',
+    bottleneckStrategy: 'In Central and Eastern Europe, the biggest hurdle is not the EMA approval, but the national HTA pricing negotiation delay (often exceeding 500 days). Campaign for rapid adoption of the EU Joint HTA reports at the national level to bypass redundant, slow local assessments.',
+    aiPreset: 'Joint HTA National Adoption Appeal'
   },
   {
     country: 'United States (FDA)',
-    steps: [
-      { name: 'NDA Filing', time: '2 Months', desc: 'Sponsor submits the New Drug Application (NDA) or Biologics License Application (BLA).' },
-      { name: 'CDER Technical Review', time: '6–10 Months', desc: 'Comprehensive safety, statistical, pharmacology, and clinical reviews by FDA scientists.' },
-      { name: 'Manufacturing Inspection', time: '2–4 Months', desc: 'Rigorous pre-approval safety inspection of the pharmaceutical production plant.' },
-      { name: 'FDA Approval', time: '1 Month', desc: 'Formal approval granted; commercial launch and post-market safety surveillance begin.' }
-    ]
+    agencyName: 'Food and Drug Administration (FDA)',
+    framework: 'FDA Priority Review, Breakthrough Designation & Collaborative Project Orbis',
+    standardSteps: [
+      { name: 'NDA / BLA Submission', time: '2 Months', desc: 'Sponsor submits the New Drug Application (NDA) or Biologics License Application (BLA).' },
+      { name: 'Standard CDER Review', time: '10 Months', desc: 'Comprehensive safety, statistical, pharmacology, and clinical dossier reviews by CDER scientists.' },
+      { name: 'GMP Facility Inspection', time: '2–4 Months', desc: 'Rigorous pre-approval safety inspection of the pharmaceutical production facility.' },
+      { name: 'FDA Approval & Launch', time: '1 Month', desc: 'Formal marketing approval granted; commercial launch and post-market safety surveillance begin.' }
+    ],
+    relianceSteps: [
+      { name: 'Priority Review Designation', time: 'Immediate', desc: 'FDA grants Priority Review, cutting the active CDER evaluation timeline from 10 months to 6 months.' },
+      { name: 'Project Orbis Concurrent Review', time: 'Concurrent', desc: 'FDA shares review data in real-time with regulatory partners in Australia, Canada, UK, and Switzerland for simultaneous global approval.' },
+      { name: 'Accelerated / Surrogate Approval', time: 'Fast-Tracked', desc: 'Approval granted based on surrogate clinical endpoints, allowing immediate patient access while confirmatory trials run.' }
+    ],
+    leverageClause: 'FDA Food and Drug Administration Safety and Innovation Act (FDASIA) Section 901.',
+    bottleneckStrategy: 'For diseases with high unmet needs, leverage the FDA Patient-Focused Drug Development (PFDD) framework. Advocates can testify directly at advisory committees to encourage the FDA to adopt surrogate endpoints, accelerating Breakthrough and Accelerated Approval tracks.',
+    aiPreset: 'Advisory Committee Patient Testimony'
   }
 ];
 
@@ -52,6 +93,10 @@ const DIRECTORY = [
 export default function RegulatoryHub() {
   const [activeTab, setActiveTab] = useState<'navigator' | 'reliance' | 'trips' | 'directory'>('navigator');
   const [selectedPathway, setSelectedPathway] = useState(0);
+  const [routeType, setRouteType] = useState<'standard' | 'reliance'>('standard');
+
+  const selectedPathData = PATHWAYS[selectedPathway];
+  const stepsToRender = routeType === 'standard' ? selectedPathData.standardSteps : selectedPathData.relianceSteps;
 
   return (
     <div className="container section">
@@ -97,7 +142,7 @@ export default function RegulatoryHub() {
               <Compass style={{ color: 'var(--blue-400)' }} /> Select Regulatory Agency
             </h3>
             <p className="text-secondary text-sm mb-4" style={{ marginBottom: '1.5rem' }}>
-              Every country evaluates drugs differently. Select an agency below to view its simplified technical timeline from initial file submission to local launch:
+              Select a regulatory body below to diagnose its approval pipeline bottlenecks, or compare the standard slow registration track with WHO Regulatory Reliance pathways:
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {PATHWAYS.map((p, idx) => (
@@ -116,12 +161,34 @@ export default function RegulatoryHub() {
 
           {/* Visual Timeline display */}
           <div className="card card-lg" style={{ borderLeft: '3px solid var(--blue-500)' }}>
-            <h3 style={{ marginBottom: '0.5rem' }}>
-              {PATHWAYS[selectedPathway].country} approval Timeline
-            </h3>
-            <p className="text-secondary text-xs mb-8" style={{ marginBottom: '2rem' }}>
-              Average progression stages for novel molecular approvals. Highlighting estimated administrative delay.
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div>
+                <h3 style={{ marginBottom: '0.25rem' }}>
+                  {selectedPathData.agencyName} Timeline
+                </h3>
+                <p className="text-xs text-muted" style={{ marginBottom: '0.5rem' }}>
+                  Framework: <strong>{selectedPathData.framework}</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Toggle Track Selector */}
+            <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '2rem', width: 'fit-content' }}>
+              <button 
+                onClick={() => setRouteType('standard')}
+                className={`btn btn-xs ${routeType === 'standard' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', borderRadius: '6px' }}
+              >
+                Standard Approval Track
+              </button>
+              <button 
+                onClick={() => setRouteType('reliance')}
+                className={`btn btn-xs ${routeType === 'reliance' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+              >
+                <Zap size={11} style={{ color: 'var(--amber-400)' }} /> WHO Reliance Track (Accelerated)
+              </button>
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
               {/* Vertical line connector */}
@@ -130,20 +197,20 @@ export default function RegulatoryHub() {
                 width: '2px', background: 'var(--border-strong)', zIndex: 1
               }} />
 
-              {PATHWAYS[selectedPathway].steps.map((step, idx) => (
+              {stepsToRender.map((step, idx) => (
                 <div key={idx} style={{ display: 'flex', gap: '1rem', position: 'relative', zIndex: 2 }}>
                   <div style={{
                     width: '34px', height: '34px', borderRadius: '50%',
-                    background: 'var(--bg-elevated)', border: '2px solid var(--blue-500)',
+                    background: 'var(--bg-elevated)', border: routeType === 'reliance' ? '2px solid var(--amber-500)' : '2px solid var(--blue-500)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 700, fontSize: '0.85rem', color: 'var(--blue-400)', flexShrink: 0
+                    fontWeight: 700, fontSize: '0.85rem', color: routeType === 'reliance' ? 'var(--amber-400)' : 'var(--blue-400)', flexShrink: 0
                   }}>
                     {idx + 1}
                   </div>
                   <div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
                       <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{step.name}</span>
-                      <span className="badge badge-teal text-xs" style={{ fontSize: '0.65rem', display: 'inline-flex', gap: '0.25rem', alignItems: 'center' }}>
+                      <span className={`badge ${routeType === 'reliance' ? 'badge-amber' : 'badge-teal'} text-xs`} style={{ fontSize: '0.65rem', display: 'inline-flex', gap: '0.25rem', alignItems: 'center' }}>
                         <Clock size={10} /> {step.time} avg.
                       </span>
                     </div>
@@ -151,6 +218,24 @@ export default function RegulatoryHub() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Advocacy Action Box */}
+            <div className="card" style={{ marginTop: '2.5rem', borderTop: '4px solid var(--teal-500)', background: 'rgba(16, 185, 129, 0.02)', padding: '1.25rem' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--teal-400)', marginBottom: '0.75rem', fontSize: '0.9rem', fontWeight: 700 }}>
+                <AlertTriangle size={15} /> Advocacy Bottleneck Strategy: {selectedPathData.country}
+              </h4>
+              <div className="text-xs text-muted mb-2" style={{ lineHeight: 1.6 }}>
+                <strong>Leverage Framework:</strong> {selectedPathData.leverageClause}
+              </div>
+              <p className="text-xs text-secondary leading-relaxed mb-4" style={{ lineHeight: 1.6 }}>
+                <strong>NGO Campaign Action:</strong> {selectedPathData.bottleneckStrategy}
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+                <Link to="/countries" className="btn btn-sm btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', textDecoration: 'none' }}>
+                  <ExternalLink size={11} /> Generate AI Action Plan: {selectedPathData.aiPreset}
+                </Link>
+              </div>
             </div>
           </div>
         </div>

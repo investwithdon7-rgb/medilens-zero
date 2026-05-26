@@ -21,6 +21,11 @@ const DISEASE_CATS = [
 
 type DiseaseCat = typeof DISEASE_CATS[number]['key'];
 
+const COUNTRIES_LIST = Object.entries(COUNTRY_DATA).map(([code, value]) => ({
+  code,
+  name: value.name
+})).sort((a, b) => a.name.localeCompare(b.name));
+
 function getDiseaseCategory(text: string): DiseaseCat {
   const c = (text || '').toLowerCase();
   // Drug-class / indication text matching
@@ -63,11 +68,16 @@ export default function NewDrugs() {
   const [filter, setFilter] = useState<'all' | 'lmic' | 'hic-only'>('all');
   const [disease, setDisease] = useState<DiseaseCat>('all');
 
+  // Country & Pagination States
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [localApprovalFilter, setLocalApprovalFilter] = useState<'all' | 'approved' | 'unapproved'>('all');
+  const [visibleCount, setVisibleCount] = useState(12);
+
   useEffect(() => {
-    getNewDrugsFeed(30).then(d => { setDrugs(d); setLoading(false); });
+    getNewDrugsFeed(120).then(d => { setDrugs(d); setLoading(false); });
   }, []);
 
-  // Filter by coverage equity and disease category
+  // Filter by coverage equity, disease category, and country local registration status
   const filtered = drugs.filter(drug => {
     // equity filter (existing)
     if (filter !== 'all') {
@@ -83,6 +93,13 @@ export default function NewDrugs() {
     if (disease !== 'all') {
       const matchesCat = (s: string) => getDiseaseCategory(s) === disease;
       if (!matchesCat(drug.drug_class ?? '') && !matchesCat(drug.indication ?? '') && !matchesCat(drug.inn ?? '')) return false;
+    }
+    // country registration filter
+    if (selectedCountry) {
+      const countries: string[] = drug.countries_registered ?? [];
+      const isApproved = countries.includes(selectedCountry);
+      if (localApprovalFilter === 'approved' && !isApproved) return false;
+      if (localApprovalFilter === 'unapproved' && isApproved) return false;
     }
     return true;
   });
@@ -104,6 +121,8 @@ export default function NewDrugs() {
 
   const withLMIC = drugs.filter(d => (d.lmic_count ?? 0) > 0).length;
   const sparseData = drugs.filter(d => (d.data_coverage ?? 0) <= 1).length;
+
+  const visibleDrugs = filtered.slice(0, visibleCount);
 
   return (
     <>
@@ -177,7 +196,7 @@ export default function NewDrugs() {
 
         {/* Filter tabs */}
         {!loading && drugs.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
             {([
               { key: 'all',      label: `All tracked (${drugs.length})` },
               { key: 'lmic',     label: `Has LMIC registration (${withLMIC})` },
@@ -186,11 +205,67 @@ export default function NewDrugs() {
               <button
                 key={f.key}
                 className={`btn btn-sm ${filter === f.key ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setFilter(f.key)}
+                onClick={() => { setFilter(f.key); setVisibleCount(12); }}
               >
                 {f.label}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Country Curation Panel */}
+        {!loading && drugs.length > 0 && (
+          <div className="card card-sm bg-elevated" style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid var(--border-strong)' }}>
+            <div className="grid-3 gap-4" style={{ alignItems: 'center' }}>
+              <div>
+                <label htmlFor="radar-country" style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 750 }}>
+                  Analyze for Country:
+                </label>
+                <select 
+                  id="radar-country"
+                  value={selectedCountry} 
+                  onChange={e => { setSelectedCountry(e.target.value); setVisibleCount(12); }}
+                  className="btn btn-outline btn-sm w-full"
+                  style={{ height: '34px', background: 'var(--bg-base)', border: '1px solid var(--border-strong)', fontSize: '0.8rem' }}
+                >
+                  <option value="">Global Overview</option>
+                  {COUNTRIES_LIST.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 750 }}>
+                  Local Approval Status:
+                </label>
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  {(['all', 'approved', 'unapproved'] as const).map(statusOpt => (
+                    <button
+                      key={statusOpt}
+                      type="button"
+                      className={`btn btn-sm ${localApprovalFilter === statusOpt ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => { setLocalApprovalFilter(statusOpt); setVisibleCount(12); }}
+                      disabled={!selectedCountry}
+                      style={{ flex: 1, height: '34px', fontSize: '0.7rem', padding: '0.25rem' }}
+                    >
+                      {statusOpt === 'all' ? 'All' : statusOpt === 'approved' ? 'Approved' : 'Missing'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                {selectedCountry ? (
+                  <>
+                    🔬 Showing drugs for <strong>{COUNTRY_DATA[selectedCountry]?.name}</strong>. 
+                    Select <strong>Missing</strong> to see the regulatory lag gap (therapies not approved locally).
+                  </>
+                ) : (
+                  <>
+                    🌍 Choose a target country to analyze its local registration gaps against newly approved innovations.
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -207,7 +282,7 @@ export default function NewDrugs() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {Object.entries(
-              filtered.reduce((acc, drug) => {
+              visibleDrugs.reduce((acc, drug) => {
                 const category = drug.drug_class || 'General Therapies';
                 if (!acc[category]) acc[category] = [];
                 acc[category].push(drug);
@@ -230,6 +305,20 @@ export default function NewDrugs() {
                   </div>
                 </div>
               ))}
+
+            {filtered.length > visibleCount && (
+              <div style={{ textAlign: 'center', marginTop: '2rem', marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount(prev => prev + 12)}
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.5rem', height: '36px', fontSize: '0.8rem' }}
+                >
+                  <RefreshCw size={14} />
+                  Load More Drugs ({filtered.length - visibleCount} remaining)
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Search, Globe, Activity, Menu, X } from 'lucide-react';
+import { Search, Globe, Activity, Menu, X, Sun, Moon } from 'lucide-react';
 import { searchDrugs } from '../lib/search';
 
 export default function Navbar() {
@@ -9,6 +9,21 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const navigate  = useNavigate();
+
+  // Theme state defaulting to light
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('theme') || 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.className = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
 
   // Debounced search
   useEffect(() => {
@@ -104,25 +119,44 @@ export default function Navbar() {
         </div>
 
         {/* Nav links */}
-        <div className="nav-links">
+        <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <NavLink to="/" end>Dashboard</NavLink>
           <NavLink to="/new-drugs">New Drugs</NavLink>
           <NavLink to="/countries" className={({ isActive }) => isActive ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'}>
             <Globe size={14} />
             Countries
           </NavLink>
+          <button
+            onClick={toggleTheme}
+            className="btn btn-ghost btn-sm"
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+            style={{ padding: '0.4375rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', height: '32px' }}
+          >
+            {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+          </button>
         </div>
 
-        {/* Mobile menu toggle */}
-        <button
-          className="btn btn-ghost btn-sm mobile-menu-toggle"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={mobileOpen}
-          aria-controls="mobile-nav-drawer"
-        >
-          {mobileOpen ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}
-        </button>
+        {/* Mobile menu toggle & switcher */}
+        <div className="mobile-menu-toggle" style={{ display: 'none', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            onClick={toggleTheme}
+            className="btn btn-ghost btn-sm"
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+            style={{ padding: '0.4375rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', height: '32px' }}
+          >
+            {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav-drawer"
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', height: '32px' }}
+          >
+            {mobileOpen ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu Drawer */}

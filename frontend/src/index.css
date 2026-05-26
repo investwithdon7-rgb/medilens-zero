@@ -64,6 +64,76 @@
   --shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.25);
 
   --transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Theme specific backgrounds for chart tracks, alerts, cards */
+  --track-bg:       rgba(255,255,255,0.04);
+  --navbar-bg:      rgba(12, 12, 20, 0.95);
+  --banner-gap-bg:  rgba(251, 113, 133, 0.06);
+  --banner-gap-border: rgba(251, 113, 133, 0.20);
+  --banner-tox-bg:  rgba(245, 158, 11, 0.06);
+  --banner-tox-border: rgba(245, 158, 11, 0.20);
+  --card-advocacy-bg: rgba(59, 130, 246, 0.04);
+  --card-advocacy-border: rgba(59, 130, 246, 0.12);
+}
+
+/* ── Light theme overrides ────────────────────────────────────────────────── */
+.light, [data-theme="light"] {
+  --bg-base:        #f8fafc;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #f1f5f9;
+  --bg-card:        #ffffff;
+  --bg-glass:       rgba(255, 255, 255, 0.80);
+  
+  --border:         rgba(0, 0, 0, 0.08);
+  --border-strong:  rgba(0, 0, 0, 0.14);
+  --border-focus:   rgba(37, 99, 235, 0.50);
+
+  /* Adjust primary/brand colors to be slightly darker/more readable on light backgrounds */
+  --blue-300:       #2563eb;
+  --blue-400:       #1d4ed8;
+  --blue-500:       #1e40af;
+  --blue-600:       #2563eb;
+  --blue-700:       #1d4ed8;
+
+  --indigo-400:     #4f46e5;
+  --indigo-500:     #4338ca;
+  --indigo-600:     #3730a3;
+
+  --emerald-400:    #059669;
+  --emerald-500:    #047857;
+  --emerald-600:    #065f46;
+
+  --amber-400:      #d97706;
+  --amber-500:      #b45309;
+
+  --rose-400:       #e11d48;
+  --rose-500:       #be123c;
+
+  /* Legacy aliases adjusted for light theme */
+  --teal-400:       #059669;
+  --teal-500:       #047857;
+  --teal-600:       #065f46;
+  --green-400:      #059669;
+  --red-400:        #e11d48;
+  --purple-400:     #7c3aed;
+
+  /* Text colors - highly readable slate shades */
+  --text-primary:   #0f172a;
+  --text-secondary: #334155;
+  --text-muted:     #64748b;
+
+  --shadow-card:  0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(148,163,184,0.12);
+  --shadow-float: 0 4px 16px rgba(0,0,0,0.08);
+  
+  /* Theme specific backgrounds */
+  --track-bg:       rgba(0, 0, 0, 0.05);
+  --navbar-bg:      rgba(255, 255, 255, 0.90);
+  --banner-gap-bg:  rgba(225, 29, 72, 0.05);
+  --banner-gap-border: rgba(225, 29, 72, 0.15);
+  --banner-tox-bg:  rgba(217, 119, 6, 0.05);
+  --banner-tox-border: rgba(217, 119, 6, 0.15);
+  --card-advocacy-bg: rgba(37, 99, 235, 0.04);
+  --card-advocacy-border: rgba(37, 99, 235, 0.15);
 }
 
 /* ── Reset & base ─────────────────────────────────────────────────────────── */
@@ -258,7 +328,7 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(12, 12, 20, 0.95);
+  background: var(--navbar-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-strong);
@@ -639,8 +709,8 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
   align-items: flex-start;
   gap: 1rem;
   padding: 0.875rem 1.25rem;
-  background: rgba(251, 113, 133, 0.06);
-  border: 1px solid rgba(251, 113, 133, 0.20);
+  background: var(--banner-gap-bg);
+  border: 1px solid var(--banner-gap-border);
   border-radius: var(--radius-md);
   margin-bottom: 1.5rem;
   color: var(--text-secondary);
@@ -678,7 +748,7 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
   display: flex;
   align-items: center;
   height: 18px;
-  background: rgba(255,255,255,0.04);
+  background: var(--track-bg);
   border-radius: var(--radius-sm);
   padding: 0 0.25rem;
   overflow: hidden;
@@ -710,7 +780,7 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
 .adoption-year { text-align: right; font-size: 0.75rem; }
 .adoption-track {
   height: 10px;
-  background: rgba(255,255,255,0.05);
+  background: var(--track-bg);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
@@ -725,7 +795,7 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
 /* ── Adoption mini bars (NewDrugs card) ───────────────────────────────────── */
 .adoption-mini-bars { display: flex; flex-direction: column; gap: 0.275rem; }
 .adoption-mini-row  { display: grid; grid-template-columns: 80px 1fr 24px; align-items: center; gap: 0.5rem; }
-.adoption-mini-track { height: 7px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+.adoption-mini-track { height: 7px; background: var(--track-bg); border-radius: 3px; overflow: hidden; }
 .adoption-mini-bar  { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
 
 /* ── Price Bar Row ────────────────────────────────────────────────────────── */
@@ -742,7 +812,7 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
 .price-row:hover { background: var(--bg-elevated); }
 .price-row:last-child { border-bottom: none; }
 .price-country { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.8125rem; }
-.price-bar-track { height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+.price-bar-track { height: 8px; background: var(--track-bg); border-radius: 4px; overflow: hidden; }
 .price-bar {
   height: 100%;
   background: linear-gradient(90deg, var(--blue-600), var(--indigo-500));
@@ -763,8 +833,8 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.625rem 0.875rem;
-  background: rgba(245, 158, 11, 0.06);
-  border: 1px solid rgba(245, 158, 11, 0.20);
+  background: var(--banner-tox-bg);
+  border: 1px solid var(--banner-tox-border);
   border-radius: var(--radius-sm);
   font-size: 0.825rem;
   color: var(--text-secondary);
@@ -773,7 +843,7 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
 .financial-toxicity-alert svg { color: var(--amber-400); flex-shrink: 0; margin-top: 2px; }
 
 /* ── Equity Score Bar ─────────────────────────────────────────────────────── */
-.equity-bar-track { height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.equity-bar-track { height: 5px; background: var(--track-bg); border-radius: 3px; overflow: hidden; }
 .equity-bar-fill  { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
 
 /* ── Innovation Equity Index ─────────────────────────────────────────────── */
@@ -844,15 +914,15 @@ code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
 
 .advocacy-card {
   padding: 1.375rem;
-  background: rgba(59, 130, 246, 0.04);
-  border: 1px solid rgba(59, 130, 246, 0.12);
+  background: var(--card-advocacy-bg);
+  border: 1px solid var(--card-advocacy-border);
   border-radius: var(--radius-md);
   transition: all var(--transition);
 }
 
 .advocacy-card:hover {
-  background: rgba(59, 130, 246, 0.07);
-  border-color: rgba(59, 130, 246, 0.25);
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
   transform: translateY(-1px);
 }
 

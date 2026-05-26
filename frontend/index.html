@@ -5,6 +5,15 @@
     <link rel="icon" type="image/svg+xml" href="/medilens/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Theme initialization to prevent flash -->
+    <script>
+      (function() {
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.className = theme;
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+
     <!-- Primary meta -->
     <title>MediLens — Global Medicine Intelligence Platform</title>
     <meta name="description" content="Track where every drug is approved, what it costs worldwide, and which patients are being left behind. Free global pharmaceutical intelligence for patients, advocates, and researchers." />

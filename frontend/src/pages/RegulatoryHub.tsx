@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shield, Users, Compass, ChevronRight, Award, HelpCircle, CheckCircle, Clock, Zap, AlertTriangle, ExternalLink, Play, RefreshCw, Clipboard } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { COUNTRY_DATA } from '../lib/reference-data';
 
 const PATHWAYS = [
   {
@@ -90,16 +91,10 @@ const DIRECTORY = [
   { name: 'Cancer Alliance', role: 'Oncology Access & Price Lobbying', desc: 'Coordinated coalition of patient advocates battling for affordable cancer therapies and patent law reforms.', link: 'https://www.canceralliance.co.za' }
 ];
 
-const COUNTRIES_LIST = [
-  { code: 'KEN', name: 'Kenya' },
-  { code: 'IND', name: 'India' },
-  { code: 'ZAF', name: 'South Africa' },
-  { code: 'BRA', name: 'Brazil' },
-  { code: 'RWA', name: 'Rwanda' },
-  { code: 'UGA', name: 'Uganda' },
-  { code: 'GBR', name: 'United Kingdom' },
-  { code: 'DEU', name: 'Germany' }
-];
+const COUNTRIES_LIST = Object.entries(COUNTRY_DATA).map(([code, value]) => ({
+  code,
+  name: value.name
+})).sort((a, b) => a.name.localeCompare(b.name));
 
 export default function RegulatoryHub() {
   const [activeTab, setActiveTab] = useState<'navigator' | 'reliance' | 'trips' | 'wizard' | 'directory'>('navigator');

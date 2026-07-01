@@ -7,18 +7,17 @@ name: 05 · Deploy Firestore Rules
 # "Request Drug Tracking" writes failed with "Missing or insufficient permissions"
 # (the drug_requests create rule existed in the repo but not in production).
 #
-# This workflow publishes firestore.rules to the live project on every change,
-# and can be run on demand (workflow_dispatch) to push the current rules now.
-#
-# Scope note: we deploy ONLY firestore:rules. We intentionally do NOT deploy
-# firestore:indexes here — a forced indexes deploy from the (empty) indexes file
-# could delete composite indexes created manually in the console.
+# We deploy via the Firebase Rules REST API (medilens/deploy_firestore_rules.py)
+# rather than `firebase deploy`, because the CLI performs a Service Usage API
+# check that the pipeline service account is not permitted to make (403). The
+# REST API needs only firebaserules permissions, which the SA already has.
 
 on:
   push:
     branches: [ master ]
     paths:
       - 'firestore.rules'
+      - 'medilens/deploy_firestore_rules.py'
       - '.github/workflows/05-deploy-firestore-rules.yml'
   workflow_dispatch:
 
@@ -33,35 +32,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: '20'
+          python-version: '3.12'
+          cache: 'pip'
 
-      - name: Install firebase-tools
-        run: npm install -g firebase-tools
-
-      # FIREBASE_SERVICE_ACCOUNT may be stored as raw JSON or base64 (the Python
-      # pipeline accepts both). Normalise to a JSON key file for firebase-tools.
-      - name: Materialise service account
-        env:
-          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          if [ -z "$SA" ]; then
-            echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not set."; exit 1
-          fi
-          if [ "${SA:0:1}" = "{" ]; then
-            printf '%s' "$SA" > /home/runner/sa.json
-          else
-            printf '%s' "$SA" | base64 -d > /home/runner/sa.json
-          fi
-          # Sanity check that it parsed to valid JSON with a project_id.
-          node -e "const j=require('/home/runner/sa.json');if(!j.project_id)process.exit(1);console.log('service account OK for project',j.project_id)"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Deploy Firestore rules
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/sa.json
-        run: firebase deploy --only firestore:rules --project ml-gmi-tekdruid-2026 --non-interactive
-
-      - name: Cleanup credentials
-        if: always()
-        run: rm -f /home/runner/sa.json
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: python -m medilens.deploy_firestore_rules

@@ -35,7 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 // Rebuild the query parameters securely
 $query_params = [];
 $allowed_params = [
-    'pageSize', 'pageCursor', 'query.term', 'filter.phases', 'filter.overallStatus'
+    'pageSize', 'pageToken', 'countTotal',
+    'query.term', 'query.locn',
+    'aggFilters', 'filter.overallStatus'
 ];
 
 foreach ($allowed_params as $param) {

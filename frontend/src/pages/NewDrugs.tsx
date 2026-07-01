@@ -33,7 +33,8 @@ function getDiseaseCategory(text: string): DiseaseCat {
   if (/cardio|hypertens|heart fail|lipid|statin|cholesterol|angina|arrhythm|anticoagul|thrombos|atrial|venous|coronary|myocard|factor xa|thrombin inhib/.test(c)) return 'cardiovascular';
   if (/diabet|insulin|glucose|sglt|glp-1|glp1|metform|hba1c|obesity|weight loss|glucagon.like|cotransporter|dipeptidyl/.test(c)) return 'diabetes';
   if (/hiv|antiretro|aids|integrase|protease inhib|nrti|nnrti|cabotegravir|reverse transcriptase/.test(c)) return 'hiv';
-  if (/tuberc|malaria|hepatit|anti-infect|antibiotic|antimicro|antivir|antifung|pneumon|sepsis|bacterial|viral infect/.test(c)) return 'infectious';
+  // \bhepatit avoids matching "steatohepatitis" (MASH, a hepatology condition) while still catching viral hepatitis
+  if (/tuberc|malaria|\bhepatit|anti-infect|antibiotic|antimicro|antivir|antifung|pneumon|sepsis|bacterial|viral infect/.test(c)) return 'infectious';
   if (/respir|asthma|copd|pulmon|broncho|inhaled|lung|airway|bronchodilat/.test(c)) return 'respiratory';
   if (/neuro|epilep|alzheimer|parkinson|multiple sclerosis|seizure|dementia|amyloid/.test(c)) return 'neurology';
   if (/psych|mental|depress|anxiety|bipolar|schizo|antidepres|adhd|serotonin reuptake/.test(c)) return 'mental-health';

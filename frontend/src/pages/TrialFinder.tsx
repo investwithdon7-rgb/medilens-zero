@@ -11,6 +11,46 @@ const COUNTRIES_LIST = Object.entries(COUNTRY_DATA).map(([code, value]) => ({
 
 const TRIALS_PROXY_URL = import.meta.env.VITE_TRIALS_PROXY_URL || 'https://tekdruid.com/medilens/api/trials.php';
 
+// Advocacy letter templates — single source of truth shared by the <pre> preview
+// and the "Copy Template" buttons (previously the buttons copied a truncated stub).
+const COMPASSIONATE_USE_LETTER = `Subject: Urgent Request for Compassionate Use Access - [Drug Name] for [Patient Name]
+
+Dear Clinical Sponsor Team / Principal Investigator,
+
+I am writing on behalf of [Patient Name], a patient in [Country] diagnosed with severe [Condition Name]. The patient's disease has progressed, and they have exhausted all locally approved, commercially available therapies.
+
+We have studied your ongoing Phase III clinical trial (NCT identifier: [Insert NCT Number]) for your investigational agent, [Drug Name]. The patient matches the clinical rationale for the trial, but unfortunately is unable to enroll due to [state reason, e.g., geographic distance from active trial sites / narrow inclusion criteria boundaries].
+
+Given the severe, life-threatening nature of the illness and the absence of comparable therapeutic options, we respectfully request that your company grant named-patient Compassionate Use (Expanded Access) to [Drug Name] under [Country's] special importation laws (Section 12 / Emergency importation provisions).
+
+The patient's treating oncologist, Dr. [Oncologist Name] at [Hospital Name], is fully prepared to oversee the administration of [Drug Name], compile all necessary safety reports, and manage clinical protocol.
+
+Thank you for your scientific leadership and your consideration of this urgent, life-saving request.
+
+Sincerely,
+
+[Your Name / NGO Title]
+[Contact Information]`;
+
+const TRIAL_EXPANSION_PETITION = `PETITION FOR REGIONAL CLINICAL TRIAL EXPANSION & ACCESS EQUITY
+
+TO: The Ministry of Health & Medical Research Directorate of [Country Name]
+CC: Clinical Trial Sponsorship Board, [Pharmaceutical Sponsor Name]
+
+SUBJECT: Request to Add Regional Healthcare Centers as Active Investigation Sites for [Drug/Treatment Name] (Trial NCT: [Insert NCT])
+
+We, the undersigned clinical societies, patient advocates, and community health networks representing [Country/Region], write to formally petition that our national reference clinics are integrated as active sites in upcoming multi-center global clinical trials for [Drug Name].
+
+1. THE ACCESS GAP: Currently, 85% of clinical trials for novel oncological, rare-disease, and infectious treatments are confined to high-income countries. This severely delays national approvals, as local agencies frequently hold decisions demanding local ethnic safety verification.
+2. RESEARCH INFRASTRUCTURE: Our regional teaching hospitals (such as [Insert Hospital Name]) possess qualified medical investigators, fully equipped biosafety labs, and established institutional review boards (IRB) capable of managing advanced clinical study protocols.
+3. EQUITABLE ACTION REQUESTED:
+— We demand that the Ministry of Health proactively coordinate with global sponsors to fast-track administrative approval of local clinical sites.
+— We request that the Sponsor allocates investigative resources to expand trials to [Region Name], ensuring diverse clinical representations and bringing life-saving therapeutic access to our citizens.
+
+Signed,
+
+[Advocacy Coalition Name / Joint signatories list]`;
+
 export default function TrialFinder() {
   // Query States
   const [query, setQuery] = useState('');
@@ -21,8 +61,10 @@ export default function TrialFinder() {
   // Data Loading States
   const [studies, setStudies] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState<number | null>(null);
+  const [nextToken, setNextToken] = useState<string | null>(null);
 
   // Copy States
   const [copiedText, setCopiedText] = useState<string | null>(null);
@@ -30,30 +72,30 @@ export default function TrialFinder() {
   // Toolkit Accordion States
   const [activeToolkit, setActiveToolkit] = useState<string | null>(null);
 
-  // Fetch trials from ClinicalTrials.gov APIv2 via secure CORS proxy
-  const fetchTrials = async () => {
-    setLoading(true);
+  // Fetch trials from ClinicalTrials.gov APIv2 via secure CORS proxy.
+  // Pass a pageToken to append the next page; omit it to run a fresh search.
+  const fetchTrials = async (pageToken?: string) => {
+    const isLoadMore = !!pageToken;
+    if (isLoadMore) setLoadingMore(true);
+    else setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
       params.append('pageSize', '12');
-      
-      const terms: string[] = [];
-      if (query.trim()) terms.push(query.trim());
+      params.append('countTotal', 'true');
+
+      if (query.trim()) params.append('query.term', query.trim());
+      // Proper location filter — searches the trial's site country/city fields,
+      // not free text (which matched any trial merely mentioning the country).
       if (country) {
         const countryName = COUNTRY_DATA[country]?.name;
-        if (countryName) terms.push(`"${countryName}"`);
+        if (countryName) params.append('query.locn', countryName);
       }
-
-      if (terms.length > 0) {
-        params.append('query.term', terms.join(' AND '));
-      }
-      if (phase) {
-        params.append('filter.phases', phase);
-      }
-      if (status) {
-        params.append('filter.overallStatus', status);
-      }
+      // Phase filter uses aggFilters (phase:1–4); the old filter.phases param is
+      // not valid in APIv2 and made every phase-filtered search fail.
+      if (phase) params.append('aggFilters', `phase:${phase}`);
+      if (status) params.append('filter.overallStatus', status);
+      if (pageToken) params.append('pageToken', pageToken);
 
       const url = `${TRIALS_PROXY_URL}?${params.toString()}`;
       const res = await fetch(url);
@@ -61,14 +103,20 @@ export default function TrialFinder() {
         throw new Error(`Failed to fetch: Server returned ${res.status}`);
       }
       const data = await res.json();
-      setStudies(data.studies ?? []);
-      setTotalCount(data.totalCount ?? (data.studies ? data.studies.length : 0));
+      const newStudies = data.studies ?? [];
+      setStudies(prev => isLoadMore ? [...prev, ...newStudies] : newStudies);
+      setNextToken(data.nextPageToken ?? null);
+      if (!isLoadMore) setTotalCount(data.totalCount ?? newStudies.length);
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred while querying ClinicalTrials.gov.');
-      setStudies([]);
-      setTotalCount(null);
+      if (!isLoadMore) {
+        setStudies([]);
+        setTotalCount(null);
+        setNextToken(null);
+      }
     } finally {
-      setLoading(false);
+      if (isLoadMore) setLoadingMore(false);
+      else setLoading(false);
     }
   };
 
@@ -148,10 +196,10 @@ export default function TrialFinder() {
                 style={{ width: '100%', padding: '0.45rem 1rem', height: '38px', borderRadius: '6px', fontSize: '0.8rem', background: 'var(--bg-base)', border: '1px solid var(--border-strong)' }}
               >
                 <option value="">All Phases</option>
-                <option value="PHASE1">Phase I (Safety)</option>
-                <option value="PHASE2">Phase II (Dosing)</option>
-                <option value="PHASE3">Phase III (Confirmatory)</option>
-                <option value="PHASE4">Phase IV (Post-Market)</option>
+                <option value="1">Phase I (Safety)</option>
+                <option value="2">Phase II (Dosing)</option>
+                <option value="3">Phase III (Confirmatory)</option>
+                <option value="4">Phase IV (Post-Market)</option>
               </select>
             </div>
 
@@ -304,6 +352,22 @@ export default function TrialFinder() {
               })}
             </div>
           )}
+
+          {/* Pagination — fetch the next page from ClinicalTrials.gov */}
+          {studies.length > 0 && nextToken && (
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <button
+                type="button"
+                onClick={() => fetchTrials(nextToken)}
+                disabled={loadingMore}
+                className="btn btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.5rem', height: '38px' }}
+              >
+                <RefreshCw size={14} className={loadingMore ? 'animate-spin' : undefined} />
+                {loadingMore ? 'Loading…' : `Load More Trials (showing ${studies.length}${totalCount ? ` of ${totalCount.toLocaleString()}` : ''})`}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -379,27 +443,10 @@ export default function TrialFinder() {
                 
                 <div style={{ position: 'relative' }}>
                   <pre style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)', padding: '1rem', borderRadius: '6px', fontSize: '0.75rem', overflowX: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--text-primary)' }}>
-{`Subject: Urgent Request for Compassionate Use Access - [Drug Name] for [Patient Name]
-
-Dear Clinical Sponsor Team / Principal Investigator,
-
-I am writing on behalf of [Patient Name], a patient in [Country] diagnosed with severe [Condition Name]. The patient's disease has progressed, and they have exhausted all locally approved, commercially available therapies.
-
-We have studied your ongoing Phase III clinical trial (NCT identifier: [Insert NCT Number]) for your investigational agent, [Drug Name]. The patient matches the clinical rationale for the trial, but unfortunately is unable to enroll due to [state reason, e.g., geographic distance from active trial sites / narrow inclusion criteria boundaries].
-
-Given the severe, life-threatening nature of the illness and the absence of comparable therapeutic options, we respectfully request that your company grant named-patient Compassionate Use (Expanded Access) to [Drug Name] under [Country's] special importation laws (Section 12 / Emergency importation provisions).
-
-The patient's treating oncologist, Dr. [Oncologist Name] at [Hospital Name], is fully prepared to oversee the administration of [Drug Name], compile all necessary safety reports, and manage clinical protocol. 
-
-Thank you for your scientific leadership and your consideration of this urgent, life-saving request.
-
-Sincerely,
-
-[Your Name / NGO Title]
-[Contact Information]`}
+{COMPASSIONATE_USE_LETTER}
                   </pre>
-                  <button 
-                    onClick={() => handleCopy(`Subject: Urgent Request for Compassionate Use Access...`, 'compassionate')}
+                  <button
+                    onClick={() => handleCopy(COMPASSIONATE_USE_LETTER, 'compassionate')}
                     className="btn btn-sm btn-ghost"
                     style={{ position: 'absolute', right: '10px', top: '10px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', background: 'var(--bg-base)', border: '1px solid var(--border)' }}
                   >
@@ -430,27 +477,10 @@ Sincerely,
                 
                 <div style={{ position: 'relative' }}>
                   <pre style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)', padding: '1rem', borderRadius: '6px', fontSize: '0.75rem', overflowX: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.6, color: 'var(--text-primary)' }}>
-{`PETITION FOR REGIONAL CLINICAL TRIAL EXPANSION & ACCESS EQUITY
-
-TO: The Ministry of Health & Medical Research Directorate of [Country Name]
-CC: Clinical Trial Sponsorship Board, [Pharmaceutical Sponsor Name]
-
-SUBJECT: Request to Add Regional Healthcare Centers as Active Investigation Sites for [Drug/Treatment Name] (Trial NCT: [Insert NCT])
-
-We, the undersigned clinical societies, patient advocates, and community health networks representing [Country/Region], write to formally petition that our national reference clinics are integrated as active sites in upcoming multi-center global clinical trials for [Drug Name].
-
-1. THE ACCESS GAP: Currently, 85% of clinical trials for novel oncological, rare-disease, and infectious treatments are confined to high-income countries. This severely delays national approvals, as local agencies frequently hold decisions demanding local ethnic safety verification.
-2. RESEARCH INFRASTRUCTURE: Our regional teaching hospitals (such as [Insert Hospital Name]) possess qualified medical investigators, fully equipped biosafety labs, and established institutional review boards (IRB) capable of managing advanced clinical study protocols.
-3. EQUITABLE ACTION REQUESTED:
-— We demand that the Ministry of Health proactively coordinate with global sponsors to fast-track administrative approval of local clinical sites.
-— We request that the Sponsor allocates investigative resources to expand trials to [Region Name], ensuring diverse clinical representations and bringing life-saving therapeutic access to our citizens.
-
-Signed,
-
-[Advocacy Coalition Name / Joint signatories list]`}
+{TRIAL_EXPANSION_PETITION}
                   </pre>
-                  <button 
-                    onClick={() => handleCopy(`PETITION FOR REGIONAL CLINICAL TRIAL EXPANSION...`, 'lobbying')}
+                  <button
+                    onClick={() => handleCopy(TRIAL_EXPANSION_PETITION, 'lobbying')}
                     className="btn btn-sm btn-ghost"
                     style={{ position: 'absolute', right: '10px', top: '10px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', background: 'var(--bg-base)', border: '1px solid var(--border)' }}
                   >

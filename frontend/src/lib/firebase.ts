@@ -120,20 +120,9 @@ export async function getDrugListForSearch() {
   });
 }
 
-// ── Shortage forecasts ────────────────────────────────────────────────────────
-
-/** Fetch shortage forecasts for a country, highest risk first. */
-export async function getShortageForecasts(countryCode: string, maxResults = 20) {
-  const col  = collection(db, 'shortage_forecasts');
-  const q    = query(
-    col,
-    where('country', '==', countryCode),
-    orderBy('vulnerability_score', 'desc'),
-    limit(maxResults),
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-}
+// Note: shortage risk is surfaced via country_dashboards.shortage_risk_high
+// (computed in compute/country_dashboards.py). A standalone `shortage_forecasts`
+// collection was never populated, so its reader was removed as dead code.
 
 // ── Drug Requests (Crowdsourced Tracking) ────────────────────────────────────
 

@@ -20,12 +20,9 @@ Sources (in order of priority):
 
 All prices stored as USD equivalent; original currency and unit also stored.
 """
-import io
 import logging
 import time
 from datetime import datetime
-
-import requests
 
 from medilens.firebase_client import get_db
 
@@ -580,6 +577,38 @@ REFERENCE_PRICES: dict[str, list[tuple]] = {
         ("DEU", 5200.00,  "EUR", "28-tab/125+200mg",  "Lauer-Taxe 2024"),
         ("AUS", 6000.00,  "AUD", "28-tab/125+200mg",  "PBS 2024"),
     ],
+
+    # ── Recent flagship approvals (2023–2025) — list / WAC prices ─────────────
+    # Verified July 2026 from company price-transparency filings, NICE/NHS
+    # decisions, and trade press. Keyed to match medilens/ingest/new_drug_seeds.py
+    # so New Drug Radar drugs show real financial-toxicity data instead of an
+    # empty pricing panel. Mostly US-first (these therapies are HIC-first) — the
+    # absolute cost is the story; the absence of LMIC rows is a real access gap.
+    "exagamglogene_autotemcel": [
+        ("USA", 2200000.00, "USD", "one-time infusion", "Vertex US list 2024"),
+        ("GBR", 1650000.00, "GBP", "one-time infusion", "NICE/NHS list 2024"),
+    ],
+    "resmetirom": [
+        ("USA", 47400.00,  "USD", "annual (daily oral)",  "Madrigal WAC 2024"),
+    ],
+    "sotatercept": [
+        ("USA", 238000.00, "USD", "annual (q3wk dosing)", "Merck US list 2024"),
+    ],
+    "donanemab": [
+        ("USA", 32000.00,  "USD", "annual course",        "Lilly US list 2024"),
+    ],
+    "zuranolone": [
+        ("USA", 15900.00,  "USD", "14-day course",        "Sage/Biogen WAC 2023"),
+    ],
+    "capivasertib": [
+        ("USA", 23762.00,  "USD", "28-day cycle",         "AstraZeneca WAC 2024"),
+    ],
+    "tarlatamab": [
+        ("USA", 30000.00,  "USD", "28-day cycle",         "Amgen WAC 2024"),
+    ],
+    "momelotinib": [
+        ("USA", 26900.00,  "USD", "30-tab/200mg",         "GSK WAC 2023"),
+    ],
 }
 
 # ── USD exchange rates (approximate 2024 annual average) ─────────────────────
@@ -595,60 +624,14 @@ def to_usd(price: float, currency: str) -> float:
     return round(price * FX_TO_USD.get(currency, 1.0), 4)
 
 
-# ── WHO GPRM live fetch (best-effort) ────────────────────────────────────────
-
-GPRM_PRODUCTS_URL = "https://apps.who.int/gprm/core/api/products"
-GPRM_PRICES_URL   = "https://apps.who.int/gprm/core/api/prices"
-
-def fetch_gprm_prices() -> list[dict]:
-    """
-    Attempt to fetch live price data from WHO GPRM public API.
-    Returns list of {inn, country, price_usd, currency, unit, source} dicts.
-    Returns empty list on any failure — caller falls back to reference table.
-    """
-    try:
-        resp = requests.get(
-            GPRM_PRICES_URL,
-            params={"limit": 500, "format": "json"},
-            timeout=30,
-            headers={"User-Agent": "MediLens/1.0"},
-        )
-        if not resp.ok:
-            logger.warning(f"WHO GPRM returned {resp.status_code} — skipping live fetch")
-            return []
-
-        data = resp.json()
-        records = data if isinstance(data, list) else data.get("results", data.get("data", []))
-
-        results = []
-        for r in records:
-            inn = (r.get("product_name") or r.get("inn") or "").strip().lower().replace(" ", "_").replace("/", "_")
-            country = (r.get("country_code") or r.get("country") or "").strip().upper()[:3]
-            price_raw = r.get("median_price") or r.get("price") or r.get("unit_price")
-            currency = (r.get("currency") or "USD").strip().upper()
-            unit = r.get("unit") or r.get("pack_size") or ""
-
-            if inn and country and price_raw:
-                try:
-                    price = float(price_raw)
-                    results.append({
-                        "inn":       inn,
-                        "country":   country,
-                        "price_usd": to_usd(price, currency),
-                        "currency":  currency,
-                        "price_orig":price,
-                        "unit":      str(unit),
-                        "source":    "WHO GPRM live",
-                    })
-                except (ValueError, TypeError):
-                    pass
-
-        logger.info(f"WHO GPRM: fetched {len(results)} price records")
-        return results
-
-    except Exception as exc:
-        logger.warning(f"WHO GPRM fetch failed ({exc}) — will use reference table only")
-        return []
+# ── Note on live price feeds ──────────────────────────────────────────────────
+# The WHO GPRM public API (apps.who.int/gprm) has been decommissioned — all
+# endpoints now 302-redirect to who.int, so no live fetch is possible. The GPRM
+# figures in REFERENCE_PRICES above are sourced from GPRM's published 2022–23
+# reports and remain valid as static references. If a replacement live feed is
+# adopted, normalise to per-pack USD before storing (GPRM previously returned
+# per-tablet/per-unit prices that produced false ~600× ratios against our
+# per-pack table).
 
 
 # ── Main ingestor ─────────────────────────────────────────────────────────────
@@ -659,28 +642,8 @@ def run():
     batch = db.batch()
     count = 0
 
-    # 1. WHO GPRM live fetch (disabled: GPRM returns per-tablet/per-unit prices
-    #    that are incompatible with our per-pack reference table, causing false
-    #    600× ratios in the price gap dashboard. Re-enable only after adding
-    #    unit normalisation (e.g. divide by pack size before storing).
-    live_records = []  # fetch_gprm_prices()
-    for rec in live_records:
-        inn = rec["inn"]
-        drug_ref = db.collection("drugs").document(inn)
-        batch.set(drug_ref, {"inn": inn, "updated_at": now}, merge=True)
-
-        price_ref = drug_ref.collection("prices").document(rec["country"])
-        batch.set(price_ref, {
-            "price":        rec["price_usd"],
-            "price_orig":   rec["price_orig"],
-            "currency":     rec["currency"],
-            "unit":         rec["unit"],
-            "source":       rec["source"],
-            "last_updated": now,
-        }, merge=True)
-        count += 1
-
-    # 2. Apply reference table (fills gaps not covered by live fetch)
+    # Apply the curated reference price table. (The former WHO GPRM live fetch is
+    # gone — see the "Note on live price feeds" above; the API was decommissioned.)
     for inn_key, entries in REFERENCE_PRICES.items():
         drug_ref = db.collection("drugs").document(inn_key)
         batch.set(drug_ref, {"inn": inn_key, "updated_at": now}, merge=True)

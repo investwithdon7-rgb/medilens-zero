@@ -32,7 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     die(json_encode(['error' => 'Method not allowed. Only GET and OPTIONS requests are supported.']));
 }
 
-// Rebuild the query parameters securely
+// Rebuild the query parameters securely.
+// NOTE: PHP rewrites '.' to '_' in $_GET keys (query.locn -> query_locn), which
+// silently drops the ClinicalTrials.gov dotted parameters. Parse the raw query
+// string instead so the original dotted names are preserved.
 $query_params = [];
 $allowed_params = [
     'pageSize', 'pageToken', 'countTotal',
@@ -40,10 +43,18 @@ $allowed_params = [
     'aggFilters', 'filter.overallStatus'
 ];
 
+$incoming = [];
+foreach (explode('&', $_SERVER['QUERY_STRING'] ?? '') as $pair) {
+    if ($pair === '') continue;
+    $kv  = explode('=', $pair, 2);
+    $key = urldecode($kv[0]);
+    $incoming[$key] = isset($kv[1]) ? urldecode($kv[1]) : '';
+}
+
 foreach ($allowed_params as $param) {
-    if (isset($_GET[$param])) {
-        // Enforce basic query sanitization
-        $query_params[$param] = preg_replace('/[\x00-\x1F\x7F]/', '', trim((string)$_GET[$param]));
+    if (isset($incoming[$param]) && $incoming[$param] !== '') {
+        // Enforce basic query sanitization (strip control chars)
+        $query_params[$param] = preg_replace('/[\x00-\x1F\x7F]/', '', trim((string)$incoming[$param]));
     }
 }
 
